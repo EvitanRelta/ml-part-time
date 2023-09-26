@@ -13,9 +13,9 @@ class Solver(nn.Module):
         U: list[Tensor],
         H: Tensor,
         d: Tensor,
-        P: Tensor,
-        P_hat: Tensor,
-        p: Tensor,
+        P: list[Tensor],
+        P_hat: list[Tensor],
+        p: list[Tensor],
     ):
         super().__init__()
         self.model = model
@@ -43,9 +43,11 @@ class Solver(nn.Module):
             list(layer.parameters())[1] for layer in linear_layers
         ]
 
-        template: list[Tensor] = [torch.empty(0)] + [
-            torch.zeros((layer.out_features,)) for layer in linear_layers
-        ]
+        template: list[Tensor] = (
+            [torch.empty(0)]
+            + [torch.randn((layer.out_features,)) for layer in linear_layers[:-1]]
+            + [torch.empty(0)]
+        )
 
         self.C: list[Tensor] = [torch.zeros((linear_layers[0].in_features,))] + [
             torch.zeros((layer.out_features,)) for layer in linear_layers
@@ -60,11 +62,17 @@ class Solver(nn.Module):
             (L[i] < 0) & (U[i] > 0) for i in range(len(U))
         ]
 
-        num_batches: int = 1
         self.gamma = nn.Parameter(torch.randn(7, 1))
         self.pi = cast(
             list[nn.Parameter],
-            nn.ParameterList([torch.randn_like(x) for x in template]),
+            nn.ParameterList(
+                [torch.empty(0)]
+                + [
+                    torch.randn((P[i + 1].shape[0],))
+                    for i in range(len(linear_layers) - 1)
+                ]
+                + [torch.empty(0)]
+            ),
         )
         self.alpha = cast(
             list[nn.Parameter],
@@ -80,7 +88,7 @@ class Solver(nn.Module):
         # fmt: on
         l = num_layers
         V: list[Tensor] = [None] * (l + 1)  # type: ignore
-        V[l] = -H.T @ gamma
+        V[l] = (-H.T @ gamma).squeeze()
         assert (
             V[l].squeeze().shape == C[l].shape
         ), f"V[l].shape == {V[l].shape}, C[l].shape == {C[l].shape}"
@@ -102,35 +110,54 @@ class Solver(nn.Module):
             # unstable_V_hat_i: Tensor = V[i + 1].T @ W[i + 1] - pi[i].T @ P_hat[i]
             unstable_V_hat_i: Tensor = torch.tensor(
                 [
-                    V[i + 1].T @ W[i + 1][j] - pi[i].T @ P_hat[i]
+                    V[i + 1].T @ W[i + 1][j] - pi[i].T @ P_hat[i][:, j]
                     for j in range(len(C[i]))
                 ]
             )
-            temp_1 = (cls.bracket_plus(unstable_V_hat_i) + U[i]) / (U[i] - L[i])
+            assert unstable_V_hat_i.dim() == 1
+
+            frac = (cls.bracket_plus(unstable_V_hat_i) + U[i]) / (U[i] - L[i])
+            bounds_frac[i] = frac
             unstable_V_i: Tensor = (
-                temp_1
+                frac
                 - C[i]
                 - alpha[i] @ cls.bracket_minus(unstable_V_hat_i)
                 - pi[i].T @ P[i]
             )
-            bounds_frac[i] = temp_1
+            assert unstable_V_i.dim() == 1
+
             V[i] = (
                 (stably_act_masks[i] * stably_activated_V_i)
                 + (stably_deact_masks[i] * stably_deactivated_V_i)
                 + (unstable_masks[i] * unstable_V_i)
             )
+            assert V[i].dim() == 1
 
         temp_2 = C[0].T - V[1].T @ W[1]
+        print([(V[i].T.shape, b[i].shape) for i in range(1, l + 1)])
         max_objective: Tensor = (
             (F.relu(temp_2) @ L[0])
             - (F.relu(-temp_2) @ U[0])
             + gamma.T @ d
             - torch.stack([V[i].T @ b[i] for i in range(1, l + 1)]).sum(dim=0)
-            - torch.stack([V[i].T @ b[i] for i in range(1, l + 1)]).sum(dim=0)
+            + self.last_dbl_summation(bounds_frac, l)
         )
         loss = -max_objective
 
         return loss.sum()
+
+    def last_dbl_summation(
+        self,
+        bounds_frac: list[Tensor],
+        l: int,
+    ) -> Tensor:
+        output: Tensor = torch.zeros((1,))
+        for i in range(1, l):
+            frac = bounds_frac[i]
+            output += torch.sum(
+                self.unstable_masks[i] * (frac - self.pi[i] @ self.p[i])
+            )
+        return output
 
     @staticmethod
     def bracket_plus(X: Tensor) -> Tensor:
