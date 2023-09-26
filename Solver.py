@@ -62,13 +62,13 @@ class Solver(nn.Module):
             (L[i] < 0) & (U[i] > 0) for i in range(len(U))
         ]
 
-        self.gamma = nn.Parameter(torch.randn(7, 1))
+        self.gamma = nn.Parameter(torch.randn(7, 1).fill_(0.512))
         self.pi = cast(
             list[nn.Parameter],
             nn.ParameterList(
                 [torch.empty(0)]
                 + [
-                    torch.randn((P[i + 1].shape[0],))
+                    torch.randn((P[i + 1].shape[0],)).fill_(0.512)
                     for i in range(len(linear_layers) - 1)
                 ]
                 + [torch.empty(0)]
@@ -76,7 +76,7 @@ class Solver(nn.Module):
         )
         self.alpha = cast(
             list[nn.Parameter],
-            nn.ParameterList([torch.randn_like(x) for x in template]),
+            nn.ParameterList([torch.randn_like(x).fill_(0.512) for x in template]),
         )
 
     def forward(self) -> Tensor:
@@ -101,11 +101,11 @@ class Solver(nn.Module):
             # A potentially more efficient equation is:
             # stably_activated_V_i = (V[i + 1].T @ W[i + 1].T).squeeze() - C[i]
             assert stably_activated_V_i.dim() == 1
-            print("stably_activated_V_i:\n", stably_activated_V_i)
+            print(f"stably_activated_V[{i}]:\n", stably_activated_V_i, "\n")
 
             stably_deactivated_V_i: Tensor = -C[i]
             assert stably_activated_V_i.dim() == 1
-            print("stably_deactivated_V_i:\n", stably_deactivated_V_i)
+            print(f"stably_deactivated_V[{i}]:\n", stably_deactivated_V_i, "\n")
 
             # unstable_V_hat_i: Tensor = V[i + 1].T @ W[i + 1] - pi[i].T @ P_hat[i]
             unstable_V_hat_i: Tensor = torch.tensor(
@@ -115,6 +115,7 @@ class Solver(nn.Module):
                 ]
             )
             assert unstable_V_hat_i.dim() == 1
+            print(f"unstable_V_hat[{i}]:\n", unstable_V_hat_i, "\n")
 
             frac = (cls.bracket_plus(unstable_V_hat_i) + U[i]) / (U[i] - L[i])
             bounds_frac[i] = frac
@@ -125,6 +126,7 @@ class Solver(nn.Module):
                 - pi[i].T @ P[i]
             )
             assert unstable_V_i.dim() == 1
+            print(f"unstable_V[{i}]:\n", unstable_V_i, "\n")
 
             V[i] = (
                 (stably_act_masks[i] * stably_activated_V_i)
@@ -132,9 +134,11 @@ class Solver(nn.Module):
                 + (unstable_masks[i] * unstable_V_i)
             )
             assert V[i].dim() == 1
+            print(f"V[{i}]:\n", V[i], "\n")
+
+        print(f"V:\n", V, "\n")
 
         temp_2 = C[0].T - V[1].T @ W[1]
-        print([(V[i].T.shape, b[i].shape) for i in range(1, l + 1)])
         max_objective: Tensor = (
             (F.relu(temp_2) @ L[0])
             - (F.relu(-temp_2) @ U[0])
