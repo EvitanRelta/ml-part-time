@@ -4,21 +4,27 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
+from inputs_dataclasses import (
+    InputLayerInputs,
+    IntermediateLayerInputs,
+    LayerInputs,
+    OutputLayerInputs,
+)
 from utils import bracket_minus, bracket_plus
 
 
 class SolverLayer(ABC, nn.Module):
-    def __init__(self, W_i: Tensor) -> None:
+    def __init__(self, inputs: LayerInputs) -> None:
         super().__init__()
-        self.W_i = W_i
-        self.num_neurons = self.W_i.size(0)
+        self.num_neurons = inputs.num_neurons
+        self.L_i = inputs.L_i
+        self.U_i = inputs.U_i
         self.C_i: Tensor = torch.zeros((self.num_neurons,))
 
-    def clear_target(self) -> None:
+    def clear_C(self) -> None:
         self.C_i: Tensor = torch.zeros((self.num_neurons,))
 
-    def set_target(self, j: int, is_min: bool) -> None:
-        self.clear_target()
+    def set_C(self, j: int, is_min: bool) -> None:
         self.C_i[j] = 1 if is_min else -1
 
     @abstractmethod
@@ -34,16 +40,32 @@ class SolverLayer(ABC, nn.Module):
         ...
 
 
-class SolverOutputLayer(SolverLayer):
-    def __init__(self, W_i: Tensor, H: Tensor, initial_gamma: Tensor | None = None) -> None:
-        super().__init__(W_i)
-        self.H = H
+class SolverInputLayer(SolverLayer):
+    def __init__(self, inputs: InputLayerInputs) -> None:
+        super().__init__(inputs)
 
-        if initial_gamma is not None:
-            self.gamma: nn.Parameter = nn.Parameter(initial_gamma.clone().detach())
+    def forward(self, V_next: Tensor) -> Tensor:
+        raise NotImplementedError()
+
+    def clamp_parameters(self) -> None:
+        pass
+
+    def get_obj_sum(self) -> Tensor:
+        raise NotImplementedError()
+
+
+class SolverOutputLayer(SolverLayer):
+    def __init__(self, inputs: OutputLayerInputs) -> None:
+        super().__init__(inputs)
+        self.W_i = inputs.W_i
+        self.b_i = inputs.b_i
+        self.H = inputs.H
+
+        if inputs.initial_gamma is not None:
+            self.gamma: nn.Parameter = nn.Parameter(inputs.initial_gamma)
         else:
-            self.gamma: nn.Parameter = nn.Parameter(torch.randn((H.size(0), 1)))
-        assert self.gamma.shape == (H.size(0),)
+            self.gamma: nn.Parameter = nn.Parameter(torch.randn((self.H.size(0),)))
+        assert self.gamma.shape == (self.H.size(0),)
 
     @override
     def forward(self, V_next: Tensor = torch.empty(0)) -> Tensor:
@@ -62,45 +84,32 @@ class SolverOutputLayer(SolverLayer):
 
 
 class SolverIntermediateLayer(SolverLayer):
-    def __init__(
-        self,
-        W_i: Tensor,
-        W_next: Tensor,
-        L_i: Tensor,
-        U_i: Tensor,
-        P_i: Tensor,
-        P_hat_i: Tensor,
-        p_i: Tensor,
-        initial_pi_i: Tensor | None = None,
-        initial_alpha_i: Tensor | None = None,
-    ) -> None:
-        super().__init__(W_i)
-        self.W_next = W_next
-        self.L_i = L_i
-        self.U_i = U_i
-        self.P_i = P_i
-        self.P_hat_i = P_hat_i
-        self.p_i = p_i
+    def __init__(self, inputs: IntermediateLayerInputs) -> None:
+        super().__init__(inputs)
+        self.W_i = inputs.W_i
+        self.b_i = inputs.b_i
+        self.W_next = inputs.W_next
+        self.P_i = inputs.P_i
+        self.P_hat_i = inputs.P_hat_i
+        self.p_i = inputs.p_i
 
-        self.stably_act_mask: Tensor = L_i >= 0
-        self.stably_deact_mask: Tensor = U_i <= 0
-        self.unstable_mask: Tensor = (L_i < 0) & (U_i > 0)
+        self.stably_act_mask: Tensor = self.L_i >= 0
+        self.stably_deact_mask: Tensor = self.U_i <= 0
+        self.unstable_mask: Tensor = (self.L_i < 0) & (self.U_i > 0)
         assert torch.all((self.stably_act_mask + self.stably_deact_mask + self.unstable_mask) == 1)
 
-        self.num_neurons: int = self.W_i.size(0)
         self.num_unstable: int = int(self.unstable_mask.sum().item())
-        self.C_i: Tensor = torch.zeros((self.num_neurons,))
 
-        assert P_i.size(1) == P_hat_i.size(1) == self.num_unstable
+        assert self.P_i.size(1) == self.P_hat_i.size(1) == self.num_unstable
 
-        if initial_pi_i is not None:
-            self.pi_i: nn.Parameter = nn.Parameter(initial_pi_i.clone().detach())
+        if inputs.initial_pi_i is not None:
+            self.pi_i: nn.Parameter = nn.Parameter(inputs.initial_pi_i)
         else:
-            self.pi_i: nn.Parameter = nn.Parameter(torch.randn((P_i.size(0),)))
-        assert self.pi_i.shape == (P_i.size(0),)
+            self.pi_i: nn.Parameter = nn.Parameter(torch.randn((self.P_i.size(0),)))
+        assert self.pi_i.shape == (self.P_i.size(0),)
 
-        if initial_alpha_i is not None:
-            self.alpha_i: nn.Parameter = nn.Parameter(initial_alpha_i.clone().detach())
+        if inputs.initial_alpha_i is not None:
+            self.alpha_i: nn.Parameter = nn.Parameter(inputs.initial_alpha_i)
         else:
             self.alpha_i: nn.Parameter = nn.Parameter(torch.randn((self.num_unstable,)))
         assert self.alpha_i.shape == (self.num_unstable,)

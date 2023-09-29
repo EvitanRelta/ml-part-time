@@ -1,19 +1,36 @@
 import torch
 
 from inputs.toy_example import H, L, P, P_hat, U, _alpha, _gamma, _pi, d, model, p
+from inputs_dataclasses import SolverInputs
 from Solver import Solver
 
-solver = Solver(model, L, U, H, d, P, P_hat, p, _gamma, _pi, _alpha)
+inputs = SolverInputs(
+    model=model,
+    L=L,
+    U=U,
+    H=H,
+    d=d,
+    P=P,
+    P_hat=P_hat,
+    p=p,
+    initial_gamma=_gamma,
+    initial_pi=_pi,
+    initial_alpha=_alpha,
+)
+solver = Solver(inputs)
+
+# Set minimisation of x4 as target.
+solver.set_target(1, 1, is_min=True)
 
 # Define the optimizer
-learning_rate = 0.005
+learning_rate = 0.01
 optimizer = torch.optim.Adam(solver.parameters(), lr=learning_rate)
 
 # Number of epochs (complete passes over the data)
 n_epochs = 10000
 
 # Threshold for the minimum change in loss
-threshold = 1e-6
+threshold = 1e-5
 
 # Initialize variable for previous loss
 prev_loss = float("inf")
@@ -25,7 +42,7 @@ for epoch in range(n_epochs):
 
     # Check if the change in loss is less than the threshold, if so, stop training
     if abs(prev_loss - loss.item()) < threshold:
-        print(f"Training stopped at epoch {epoch}, Loss: {loss.item()}")
+        print(f"Training stopped at epoch {epoch}, Loss: {-loss.item()}")
         break
 
     # Update previous loss
