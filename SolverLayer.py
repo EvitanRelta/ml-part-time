@@ -64,7 +64,7 @@ class SolverOutputLayer(SolverLayer):
         if inputs.initial_gamma is not None:
             self.gamma: nn.Parameter = nn.Parameter(inputs.initial_gamma)
         else:
-            self.gamma: nn.Parameter = nn.Parameter(torch.randn((self.H.size(0),)))
+            self.gamma: nn.Parameter = nn.Parameter(torch.rand((self.H.size(0),)))
         assert self.gamma.shape == (self.H.size(0),)
 
     @override
@@ -105,13 +105,13 @@ class SolverIntermediateLayer(SolverLayer):
         if inputs.initial_pi_i is not None:
             self.pi_i: nn.Parameter = nn.Parameter(inputs.initial_pi_i)
         else:
-            self.pi_i: nn.Parameter = nn.Parameter(torch.randn((self.P_i.size(0),)))
+            self.pi_i: nn.Parameter = nn.Parameter(torch.rand((self.P_i.size(0),)))
         assert self.pi_i.shape == (self.P_i.size(0),)
 
         if inputs.initial_alpha_i is not None:
             self.alpha_i: nn.Parameter = nn.Parameter(inputs.initial_alpha_i)
         else:
-            self.alpha_i: nn.Parameter = nn.Parameter(torch.randn((self.num_unstable,)))
+            self.alpha_i: nn.Parameter = nn.Parameter(torch.rand((self.num_unstable,)))
         assert self.alpha_i.shape == (self.num_unstable,)
 
         self.V_hat_i: Tensor | None = None
