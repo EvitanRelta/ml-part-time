@@ -43,6 +43,7 @@ class Solver(nn.Module):
             self.layers.append(
                 SolverIntermediateLayer(
                     self.W[i],
+                    self.W[i + 1],
                     L[i],
                     U[i],
                     P[i - 1],
@@ -53,7 +54,7 @@ class Solver(nn.Module):
                 )
             )
 
-        self.layers.append(SolverOutputLayer(H, self.W[-1], initial_gamma))
+        self.layers.append(SolverOutputLayer(self.W[-1], H, initial_gamma))
 
         layer = self.layers[1]
         assert isinstance(layer, SolverIntermediateLayer)
@@ -88,7 +89,7 @@ class Solver(nn.Module):
         for i in range(l - 1, 0, -1):  # From l-1 to 1 (inclusive)
             layer = self.layers[i]
             assert isinstance(layer, SolverIntermediateLayer)
-            V[i] = layer.forward(V[i + 1], W[i + 1])
+            V[i] = layer.forward(V[i + 1])
 
         temp_2 = self.C_0.T - V[1].T @ W[1]
         max_objective: Tensor = (
