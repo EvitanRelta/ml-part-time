@@ -47,7 +47,6 @@ d: Tensor = torch.tensor([0, 0, 0, 1, -2, -2, -2]).float()
 # -x7 <= 0, -x8 <= 0, -0.5x4 +x7 -1 <= 0, -0.5x5+x8 -1 <= 0, 2x4+x5-x7-x8 <= 0, -x7-x8-2 <= 0
 # xi is [x4, x5], xi_hat is [x7, x8]
 P: list[Tensor] = [
-    torch.empty(0),
     torch.tensor(
         [
             [0, 0, 0],
@@ -58,13 +57,11 @@ P: list[Tensor] = [
             [0, 0, 0],
         ]
     ).float(),
-    torch.empty(0),
 ]
 """`P` matrix in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
 P_hat: list[Tensor] = [
-    torch.empty(0),
     torch.tensor(
         [
             [0, -1, 0],
@@ -75,16 +72,19 @@ P_hat: list[Tensor] = [
             [0, -1, -1],
         ]
     ).float(),
-    torch.empty(0),
 ]
 
 """`P_hat` matrix in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
 p: list[Tensor] = [
-    torch.empty(0),
     torch.tensor([0, 0, 1, 1, 0, 2]).float(),
-    torch.empty(0),
 ]
 """`p` vector in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
+
+
+# Testing value.
+_gamma: Tensor = torch.tensor([3, 1, 4, 1, 5, 9, 2]).float()
+_pi: list[Tensor] = [torch.tensor([0.5, 2, 3, 8, 5, 6]).float()]
+_alpha: list[Tensor] = [torch.tensor([0.4, 0.6]).float()]
