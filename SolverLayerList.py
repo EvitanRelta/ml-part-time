@@ -1,8 +1,6 @@
 from typing import Iterator, Literal, Sequence, overload
 
-import torch
-import torch.nn.functional as F
-from torch import Tensor, nn
+from torch import nn
 
 from inputs_dataclasses import SolverInputs
 from SolverLayer import (

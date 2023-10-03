@@ -39,9 +39,6 @@ class IntermediateLayerInputs(LayerInputs):
     initial_alpha_i: Tensor | None = None
 
 
-from collections.abc import Sized
-
-
 @dataclass
 class SolverInputs(Sequence):
     model: nn.Module

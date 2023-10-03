@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from inputs_dataclasses import SolverInputs
-from SolverLayer import SolverIntermediateLayer, SolverOutputLayer
 from SolverLayerList import SolverLayerList
 
 
