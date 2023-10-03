@@ -85,12 +85,7 @@ class SolverIntermediateLayer(SolverLayer):
         super().__init__(inputs)
         self.inputs: IntermediateLayerInputs
 
-        self.stably_act_mask: Tensor = self.inputs.L_i >= 0
-        self.stably_deact_mask: Tensor = self.inputs.U_i <= 0
-        self.unstable_mask: Tensor = (self.inputs.L_i < 0) & (self.inputs.U_i > 0)
-        assert torch.all((self.stably_act_mask + self.stably_deact_mask + self.unstable_mask) == 1)
-
-        self.num_unstable: int = int(self.unstable_mask.sum().item())
+        self.num_unstable: int = int(self.inputs.unstable_mask.sum().item())
 
         assert self.inputs.P_i.size(1) == self.inputs.P_hat_i.size(1) == self.num_unstable
 
@@ -112,7 +107,7 @@ class SolverIntermediateLayer(SolverLayer):
     def forward(self, V_next: Tensor) -> Tensor:
         # fmt: off
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        W_next, num_neurons, num_unstable, P_i, P_hat_i, C_i, stably_act_mask, stably_deact_mask, unstable_mask, pi_i, alpha_i, U_i, L_i = self.inputs.W_next, self.inputs.num_neurons, self.num_unstable, self.inputs.P_i, self.inputs.P_hat_i, self.C_i, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi_i, self.alpha_i, self.inputs.U_i, self.inputs.L_i
+        W_next, num_neurons, num_unstable, P_i, P_hat_i, C_i, stably_act_mask, stably_deact_mask, unstable_mask, pi_i, alpha_i, U_i, L_i = self.inputs.W_next, self.inputs.num_neurons, self.num_unstable, self.inputs.P_i, self.inputs.P_hat_i, self.C_i, self.inputs.stably_act_mask, self.inputs.stably_deact_mask, self.inputs.unstable_mask, self.pi_i, self.alpha_i, self.inputs.U_i, self.inputs.L_i
         # fmt: on
 
         V_i: Tensor = torch.zeros((num_neurons,))
@@ -150,7 +145,7 @@ class SolverIntermediateLayer(SolverLayer):
     def get_obj_sum(self) -> Tensor:
         # fmt: off
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        L_i, U_i, unstable_mask, p_i, pi_i = self.inputs.L_i, self.inputs.U_i, self.unstable_mask, self.inputs.p_i, self.pi_i
+        L_i, U_i, unstable_mask, p_i, pi_i = self.inputs.L_i, self.inputs.U_i, self.inputs.unstable_mask, self.inputs.p_i, self.pi_i
         # fmt: on
 
         if self.num_unstable == 0:

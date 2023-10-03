@@ -13,6 +13,14 @@ class LayerInputs:
     L_i: Tensor
     U_i: Tensor
 
+    def __post_init__(self):
+        self.stably_act_mask: Tensor = self.L_i >= 0
+        self.stably_deact_mask: Tensor = self.U_i <= 0
+        self.unstable_mask: Tensor = (self.L_i < 0) & (self.U_i > 0)
+        assert torch.all((self.stably_act_mask + self.stably_deact_mask + self.unstable_mask) == 1)
+
+        self.num_unstable: int = int(self.unstable_mask.sum().item())
+
 
 @dataclass
 class InputLayerInputs(LayerInputs):
