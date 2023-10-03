@@ -56,6 +56,8 @@ class SolverInputs(Sequence):
     def __post_init__(self) -> None:
         cls = self.__class__
         self.num_layers, self.W, self.b = cls.decompose_model(self.model)
+        self._validate_inputs()
+        self._layer_inputs: list[LayerInputs] = self._get_inputs_per_layer()
 
     def _validate_inputs(self) -> None:
         assert len(self.P) == len(self.P_hat) == len(self.p)
@@ -64,6 +66,53 @@ class SolverInputs(Sequence):
             assert self.p[i].dim() == 1
             assert self.P[i].shape == self.P_hat[i].shape
             assert self.p[i].size(0) == self.P[i].size(0)
+
+    def _get_inputs_per_layer(self) -> list[LayerInputs]:
+        layer_inputs_list: list[LayerInputs] = []
+
+        # First-layer inputs.
+        layer_inputs_list.append(
+            InputLayerInputs(num_neurons=self.W[1].size(1), L_i=self.L[0], U_i=self.U[0])
+        )
+
+        # Intermediate-layer inputs.
+        for i in range(1, self.num_layers):
+            layer_inputs_list.append(
+                IntermediateLayerInputs(
+                    num_neurons=self.W[i].size(0),
+                    L_i=self.L[i],
+                    U_i=self.U[i],
+                    W_i=self.W[i],
+                    b_i=self.b[i],
+                    W_next=self.W[i + 1],
+                    P_i=self.P[i - 1],
+                    P_hat_i=P_hat[i - 1],
+                    p_i=self.p[i - 1],
+                    initial_pi_i=self.initial_pi[i - 1].clone().detach()
+                    if self.initial_pi is not None
+                    else None,
+                    initial_alpha_i=self.initial_alpha[i - 1].clone().detach()
+                    if self.initial_alpha is not None
+                    else None,
+                )
+            )
+
+        # Last-layer inputs.
+        layer_inputs_list.append(
+            OutputLayerInputs(
+                num_neurons=self.W[-1].size(0),
+                L_i=self.L[-1],
+                U_i=self.U[-1],
+                W_i=self.W[-1],
+                b_i=self.b[-1],
+                H=self.H,
+                initial_gamma=self.initial_gamma.clone().detach()
+                if self.initial_gamma is not None
+                else None,
+            )
+        )
+
+        return layer_inputs_list
 
     def __len__(self):
         return self.num_layers + 1
@@ -81,44 +130,7 @@ class SolverInputs(Sequence):
         ...
 
     def __getitem__(self, i: int) -> LayerInputs:
-        if i < -1 or i >= len(self):
-            raise IndexError(f"Expected an index i, where -1 <= i < {len(self)}, but got {i}.")
-
-        is_input_layer: bool = i == 0
-        if is_input_layer:
-            return InputLayerInputs(num_neurons=self.W[1].size(1), L_i=self.L[i], U_i=self.U[i])
-
-        is_output_layer: bool = i == -1 or i == self.num_layers
-        if is_output_layer:
-            return OutputLayerInputs(
-                num_neurons=self.W[i].size(0),
-                L_i=self.L[i],
-                U_i=self.U[i],
-                W_i=self.W[i],
-                b_i=self.b[i],
-                H=self.H,
-                initial_gamma=self.initial_gamma.clone().detach()
-                if self.initial_gamma is not None
-                else None,
-            )
-
-        return IntermediateLayerInputs(
-            num_neurons=self.W[i].size(0),
-            L_i=self.L[i],
-            U_i=self.U[i],
-            W_i=self.W[i],
-            b_i=self.b[i],
-            W_next=self.W[i + 1],
-            P_i=self.P[i - 1],
-            P_hat_i=P_hat[i - 1],
-            p_i=self.p[i - 1],
-            initial_pi_i=self.initial_pi[i - 1].clone().detach()
-            if self.initial_pi is not None
-            else None,
-            initial_alpha_i=self.initial_alpha[i - 1].clone().detach()
-            if self.initial_alpha is not None
-            else None,
-        )
+        return self._layer_inputs[i]
 
     @staticmethod
     def decompose_model(
