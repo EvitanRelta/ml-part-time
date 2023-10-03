@@ -42,12 +42,12 @@ class Solver(nn.Module):
         layers, d = self.layers, self.d
 
         l = layers.num_layers
-        relu_tensor: Tensor = layers[0].C_i.T - V[1].T @ layers[1].W_i
+        relu_tensor: Tensor = layers[0].C_i.T - V[1].T @ layers[1].inputs.W_i
         max_objective: Tensor = (
-            (F.relu(relu_tensor) @ layers[0].L_i)
-            - (F.relu(-relu_tensor) @ layers[0].U_i)
+            (F.relu(relu_tensor) @ layers[0].inputs.L_i)
+            - (F.relu(-relu_tensor) @ layers[0].inputs.U_i)
             + layers[-1].gamma.T @ d
-            - torch.stack([V[i].T @ layers[i].b_i for i in range(1, l + 1)]).sum(dim=0)
+            - torch.stack([V[i].T @ layers[i].inputs.b_i for i in range(1, l + 1)]).sum(dim=0)
             + torch.stack([self.layers[i].get_obj_sum() for i in range(1, l)]).sum(dim=0)
         )
         return max_objective
