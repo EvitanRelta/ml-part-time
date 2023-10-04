@@ -153,7 +153,7 @@ class SolverInputs(Sequence):
                     b_i=self.b[i],
                     W_next=self.W[i + 1],
                     P_i=self.P[i - 1],
-                    P_hat_i=P_hat[i - 1],
+                    P_hat_i=self.P_hat[i - 1],
                     p_i=self.p[i - 1],
                     initial_pi_i=self.initial_pi[i - 1].clone().detach()
                     if self.initial_pi is not None
