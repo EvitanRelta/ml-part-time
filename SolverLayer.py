@@ -17,13 +17,6 @@ class SolverLayer(ABC, nn.Module):
     def __init__(self, inputs: LayerInputs) -> None:
         super().__init__()
         self.inputs = inputs
-        self.C_i: Tensor = torch.zeros((self.inputs.num_neurons,))
-
-    def clear_C(self) -> None:
-        self.C_i: Tensor = torch.zeros((self.inputs.num_neurons,))
-
-    def set_C(self, j: int, is_min: bool) -> None:
-        self.C_i[j] = 1 if is_min else -1
 
     @abstractmethod
     def forward(self, V_next: Tensor) -> Tensor:
@@ -59,10 +52,21 @@ class SolverOutputLayer(SolverLayer):
         self.inputs: OutputLayerInputs
 
         if self.inputs.initial_gamma is not None:
-            self.gamma: nn.Parameter = nn.Parameter(self.inputs.initial_gamma)
+            self.gamma: nn.Parameter = nn.Parameter(
+                self.inputs.initial_gamma
+                if self.inputs.initial_gamma.dim() == 2
+                else torch.stack(
+                    [self.inputs.initial_gamma.clone().detach()] * self.inputs.batches
+                )  # Copy initial values for all batches.
+            )
         else:
-            self.gamma: nn.Parameter = nn.Parameter(torch.rand((self.inputs.H.size(0),)))
-        assert self.gamma.shape == (self.inputs.H.size(0),)
+            self.gamma: nn.Parameter = nn.Parameter(
+                torch.rand((self.inputs.batches, self.inputs.H.size(0)))
+            )
+        assert self.gamma.shape == (
+            self.inputs.batches,
+            self.inputs.H.size(0),
+        )
 
     @override
     def forward(self, V_next: Tensor = torch.empty(0)) -> Tensor:
@@ -85,21 +89,41 @@ class SolverIntermediateLayer(SolverLayer):
         super().__init__(inputs)
         self.inputs: IntermediateLayerInputs
 
-        self.num_unstable: int = int(self.inputs.unstable_mask.sum().item())
-
-        assert self.inputs.P_i.size(1) == self.inputs.P_hat_i.size(1) == self.num_unstable
+        assert self.inputs.P_i.size(1) == self.inputs.P_hat_i.size(1) == self.inputs.num_unstable
 
         if self.inputs.initial_pi_i is not None:
-            self.pi_i: nn.Parameter = nn.Parameter(self.inputs.initial_pi_i)
+            self.pi_i: nn.Parameter = nn.Parameter(
+                self.inputs.initial_pi_i
+                if self.inputs.initial_pi_i.dim() == 2
+                else torch.stack(
+                    [self.inputs.initial_pi_i.clone().detach()] * self.inputs.batches
+                )  # Copy initial values for all batches.
+            )
         else:
-            self.pi_i: nn.Parameter = nn.Parameter(torch.rand((self.inputs.P_i.size(0),)))
-        assert self.pi_i.shape == (self.inputs.P_i.size(0),)
+            self.pi_i: nn.Parameter = nn.Parameter(
+                torch.rand((self.inputs.batches, self.inputs.P_i.size(0)))
+            )
+        assert self.pi_i.shape == (
+            self.inputs.batches,
+            self.inputs.P_i.size(0),
+        )
 
         if self.inputs.initial_alpha_i is not None:
-            self.alpha_i: nn.Parameter = nn.Parameter(self.inputs.initial_alpha_i)
+            self.alpha_i: nn.Parameter = nn.Parameter(
+                self.inputs.initial_alpha_i
+                if self.inputs.initial_alpha_i.dim() == 2
+                else torch.stack(
+                    [self.inputs.initial_alpha_i.clone().detach()] * self.inputs.batches
+                )  # Copy initial values for all batches.
+            )
         else:
-            self.alpha_i: nn.Parameter = nn.Parameter(torch.rand((self.num_unstable,)))
-        assert self.alpha_i.shape == (self.num_unstable,)
+            self.alpha_i: nn.Parameter = nn.Parameter(
+                torch.rand((self.inputs.batches, self.inputs.num_unstable))
+            )
+        assert self.alpha_i.shape == (
+            self.inputs.batches,
+            self.inputs.num_unstable,
+        )
 
         self.V_hat_i: Tensor | None = None
 
@@ -107,7 +131,7 @@ class SolverIntermediateLayer(SolverLayer):
     def forward(self, V_next: Tensor) -> Tensor:
         # fmt: off
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        W_next, num_neurons, num_unstable, P_i, P_hat_i, C_i, stably_act_mask, stably_deact_mask, unstable_mask, pi_i, alpha_i, U_i, L_i = self.inputs.W_next, self.inputs.num_neurons, self.num_unstable, self.inputs.P_i, self.inputs.P_hat_i, self.C_i, self.inputs.stably_act_mask, self.inputs.stably_deact_mask, self.inputs.unstable_mask, self.pi_i, self.alpha_i, self.inputs.U_i, self.inputs.L_i
+        W_next, num_neurons, num_unstable, P_i, P_hat_i, C_i, stably_act_mask, stably_deact_mask, unstable_mask, pi_i, alpha_i, U_i, L_i = self.inputs.W_next, self.inputs.num_neurons, self.inputs.num_unstable, self.inputs.P_i, self.inputs.P_hat_i, self.inputs.C_i, self.inputs.stably_act_mask, self.inputs.stably_deact_mask, self.inputs.unstable_mask, self.pi_i, self.alpha_i, self.inputs.U_i, self.inputs.L_i
         # fmt: on
 
         V_i: Tensor = torch.zeros((num_neurons,))

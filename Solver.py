@@ -14,11 +14,6 @@ class Solver(nn.Module):
         self.d = inputs.d
         self.layers = SolverLayerList(inputs)
 
-    def set_target(self, i: int, j: int, is_min) -> None:
-        for layer in self.layers:
-            layer.clear_C()
-        self.layers[i].set_C(j, is_min)
-
     def clamp_parameters(self):
         with torch.no_grad():
             for layer in self.layers:

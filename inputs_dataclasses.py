@@ -9,17 +9,15 @@ from inputs.toy_example import P_hat
 
 @dataclass
 class LayerInputs:
+    batches: int
     num_neurons: int
     L_i: Tensor
     U_i: Tensor
-
-    def __post_init__(self):
-        self.stably_act_mask: Tensor = self.L_i >= 0
-        self.stably_deact_mask: Tensor = self.U_i <= 0
-        self.unstable_mask: Tensor = (self.L_i < 0) & (self.U_i > 0)
-        assert torch.all((self.stably_act_mask + self.stably_deact_mask + self.unstable_mask) == 1)
-
-        self.num_unstable: int = int(self.unstable_mask.sum().item())
+    stably_act_mask: Tensor
+    stably_deact_mask: Tensor
+    unstable_mask: Tensor
+    num_unstable: int
+    C_i: Tensor
 
 
 @dataclass
@@ -65,6 +63,12 @@ class SolverInputs(Sequence):
         cls = self.__class__
         self.num_layers, self.W, self.b = cls.decompose_model(self.model)
         self._validate_inputs()
+        self.stably_act_masks, self.stably_deact_masks, self.unstable_masks = cls._get_masks(
+            self.L, self.U
+        )
+        self.num_unstable_list: list[int] = [int(mask.sum().item()) for mask in self.unstable_masks]
+        self.total_num_intermediate_unstable: int = sum(self.num_unstable_list[1:-1])
+        self.C = cls._get_C(self.unstable_masks, self.total_num_intermediate_unstable)
         self._layer_inputs: list[LayerInputs] = self._get_inputs_per_layer()
 
     def _validate_inputs(self) -> None:
@@ -75,21 +79,76 @@ class SolverInputs(Sequence):
             assert self.P[i].shape == self.P_hat[i].shape
             assert self.p[i].size(0) == self.P[i].size(0)
 
+    @staticmethod
+    def _get_masks(
+        L: list[Tensor], U: list[Tensor]
+    ) -> tuple[list[Tensor], list[Tensor], list[Tensor]]:
+        num_layers = len(U)
+        stably_act_masks: list[Tensor] = [L_i >= 0 for L_i in L]
+        stably_deact_masks: list[Tensor] = [U_i <= 0 for U_i in U]
+        unstable_masks: list[Tensor] = [(L[i] < 0) & (U[i] > 0) for i in range(num_layers)]
+        for i in range(num_layers):
+            assert torch.all((stably_act_masks[i] + stably_deact_masks[i] + unstable_masks[i]) == 1)
+
+        return stably_act_masks, stably_deact_masks, unstable_masks
+
+    @staticmethod
+    def _get_C(
+        unstable_masks: list[Tensor],
+        total_num_intermediate_unstable: int,
+    ) -> list[Tensor]:
+        l = len(unstable_masks) - 1
+        C: list[Tensor] = []
+
+        batch_index: int = 0
+        for layer in range(len(unstable_masks)):
+            unstable_mask: Tensor = unstable_masks[layer]
+            num_neurons: int = unstable_mask.size(0)
+
+            if layer == 0 or layer == l:  # Don't solve for 1st/last layer.
+                C.append(torch.zeros((total_num_intermediate_unstable * 2, num_neurons)))
+                continue
+
+            unstable_indices: Tensor = torch.where(unstable_mask)[0]
+            C_i = torch.zeros((total_num_intermediate_unstable * 2, num_neurons))
+            for index in unstable_indices:
+                C_i[batch_index][index] = 1  # Minimising
+                C_i[batch_index + 1][index] = -1  # Maximising
+                batch_index += 2
+            C.append(C_i)
+        return C
+
     def _get_inputs_per_layer(self) -> list[LayerInputs]:
         layer_inputs_list: list[LayerInputs] = []
 
         # First-layer inputs.
         layer_inputs_list.append(
-            InputLayerInputs(num_neurons=self.W[1].size(1), L_i=self.L[0], U_i=self.U[0])
+            InputLayerInputs(
+                batches=self.total_num_intermediate_unstable * 2,
+                num_neurons=self.W[1].size(1),
+                L_i=self.L[0],
+                U_i=self.U[0],
+                stably_act_mask=self.stably_act_masks[0],
+                stably_deact_mask=self.stably_deact_masks[0],
+                unstable_mask=self.unstable_masks[0],
+                num_unstable=self.num_unstable_list[0],
+                C_i=self.C[0],
+            )
         )
 
         # Intermediate-layer inputs.
         for i in range(1, self.num_layers):
             layer_inputs_list.append(
                 IntermediateLayerInputs(
+                    batches=self.total_num_intermediate_unstable * 2,
                     num_neurons=self.W[i].size(0),
                     L_i=self.L[i],
                     U_i=self.U[i],
+                    stably_act_mask=self.stably_act_masks[i],
+                    stably_deact_mask=self.stably_deact_masks[i],
+                    unstable_mask=self.unstable_masks[i],
+                    num_unstable=self.num_unstable_list[i],
+                    C_i=self.C[i],
                     W_i=self.W[i],
                     b_i=self.b[i],
                     W_next=self.W[i + 1],
@@ -108,9 +167,15 @@ class SolverInputs(Sequence):
         # Last-layer inputs.
         layer_inputs_list.append(
             OutputLayerInputs(
+                batches=self.total_num_intermediate_unstable * 2,
                 num_neurons=self.W[-1].size(0),
                 L_i=self.L[-1],
                 U_i=self.U[-1],
+                stably_act_mask=self.stably_act_masks[-1],
+                stably_deact_mask=self.stably_deact_masks[-1],
+                unstable_mask=self.unstable_masks[-1],
+                num_unstable=self.num_unstable_list[-1],
+                C_i=self.C[-1],
                 W_i=self.W[-1],
                 b_i=self.b[-1],
                 H=self.H,

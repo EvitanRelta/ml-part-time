@@ -19,9 +19,6 @@ inputs = SolverInputs(
 )
 solver = Solver(inputs)
 
-# Set minimisation of x4 as target.
-solver.set_target(1, 1, is_min=True)
-
 # Define the optimizer
 learning_rate = 0.01
 optimizer = torch.optim.Adam(solver.parameters(), lr=learning_rate)
