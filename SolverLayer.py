@@ -71,8 +71,8 @@ class SolverOutputLayer(SolverLayer):
     @override
     def forward(self, V_next: Tensor = torch.empty(0)) -> Tensor:
         H, gamma = self.inputs.H, self.gamma
-        V_L = (-H.T @ gamma).squeeze()
-        assert V_L.dim() == 1
+        V_L = (-H.T @ gamma.T).T
+        assert V_L.dim() == 2
         return V_L
 
     @override
@@ -131,30 +131,30 @@ class SolverIntermediateLayer(SolverLayer):
     def forward(self, V_next: Tensor) -> Tensor:
         # fmt: off
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        W_next, num_neurons, num_unstable, P_i, P_hat_i, C_i, stably_act_mask, stably_deact_mask, unstable_mask, pi_i, alpha_i, U_i, L_i = self.inputs.W_next, self.inputs.num_neurons, self.inputs.num_unstable, self.inputs.P_i, self.inputs.P_hat_i, self.inputs.C_i, self.inputs.stably_act_mask, self.inputs.stably_deact_mask, self.inputs.unstable_mask, self.pi_i, self.alpha_i, self.inputs.U_i, self.inputs.L_i
+        W_next, batches, num_neurons, num_unstable, P_i, P_hat_i, C_i, stably_act_mask, stably_deact_mask, unstable_mask, pi_i, alpha_i, U_i, L_i = self.inputs.W_next, self.inputs.batches, self.inputs.num_neurons, self.inputs.num_unstable, self.inputs.P_i, self.inputs.P_hat_i, self.inputs.C_i, self.inputs.stably_act_mask, self.inputs.stably_deact_mask, self.inputs.unstable_mask, self.pi_i, self.alpha_i, self.inputs.U_i, self.inputs.L_i
         # fmt: on
 
-        V_i: Tensor = torch.zeros((num_neurons,))
+        V_i: Tensor = torch.zeros((batches, num_neurons))
 
         # Stably activated.
-        stably_activated_V_i: Tensor = (V_next @ W_next.T).squeeze() - C_i
-        V_i[stably_act_mask] = stably_activated_V_i[stably_act_mask]
+        stably_activated_V_i: Tensor = V_next @ W_next.T - C_i
+        V_i[:, stably_act_mask] = stably_activated_V_i[:, stably_act_mask]
         # torch.tensor(
         #     [V_next.T @ W_next[j] - C_i[j] for j in range(num_neurons)]
         # )
 
         # Stably deactivated.
-        V_i[stably_deact_mask] = -C_i[stably_deact_mask]
+        V_i[:, stably_deact_mask] = -C_i[:, stably_deact_mask]
 
         if num_unstable == 0:
             return V_i
 
-        V_hat_i = (V_next @ W_next.T).squeeze()[unstable_mask] - pi_i @ P_hat_i
+        V_hat_i = (V_next @ W_next.T)[:, unstable_mask] - pi_i @ P_hat_i
         self.V_hat_i = V_hat_i
 
-        V_i[unstable_mask] = (
+        V_i[:, unstable_mask] = (
             (bracket_plus(V_hat_i) * U_i[unstable_mask]) / (U_i[unstable_mask] - L_i[unstable_mask])
-            - C_i[unstable_mask]
+            - C_i[:, unstable_mask]
             - alpha_i * bracket_minus(V_hat_i)
             - pi_i @ P_i
         )
@@ -169,18 +169,19 @@ class SolverIntermediateLayer(SolverLayer):
     def get_obj_sum(self) -> Tensor:
         # fmt: off
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        L_i, U_i, unstable_mask, p_i, pi_i = self.inputs.L_i, self.inputs.U_i, self.inputs.unstable_mask, self.inputs.p_i, self.pi_i
+        batches, L_i, U_i, unstable_mask, p_i, pi_i = self.inputs.batches, self.inputs.L_i, self.inputs.U_i, self.inputs.unstable_mask, self.inputs.p_i, self.pi_i
         # fmt: on
 
-        if self.num_unstable == 0:
-            return torch.zeros((1,))
+        if self.inputs.num_unstable == 0:
+            return torch.zeros((batches,))
 
         assert self.V_hat_i is not None
         V_hat_i = self.V_hat_i
         return (
             torch.sum(
                 (bracket_plus(V_hat_i) * U_i[unstable_mask] * L_i[unstable_mask])
-                / (U_i[unstable_mask] - L_i[unstable_mask])
+                / (U_i[unstable_mask] - L_i[unstable_mask]),
+                dim=1,
             )
             - pi_i @ p_i
         )
