@@ -4,8 +4,6 @@ from typing import Literal, Sequence, overload
 import torch
 from torch import Tensor, nn
 
-from inputs.toy_example import P_hat
-
 
 @dataclass
 class LayerInputs:
