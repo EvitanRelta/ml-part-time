@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
+from AdversarialCheckModel import AdversarialCheckModel
 from inputs_dataclasses import SolverInputs
 from SolverLayerList import SolverLayerList
 
@@ -13,6 +14,7 @@ class Solver(nn.Module):
         super().__init__()
         self.d = inputs.d
         self.layers = SolverLayerList(inputs)
+        self.adv_check_model = AdversarialCheckModel(inputs.model, inputs.ground_truth_neuron_index)
 
     def clamp_parameters(self):
         with torch.no_grad():

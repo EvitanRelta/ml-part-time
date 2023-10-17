@@ -46,6 +46,7 @@ class IntermediateLayerInputs(LayerInputs):
 @dataclass
 class SolverInputs(Sequence):
     model: nn.Module
+    ground_truth_neuron_index: int
     L: list[Tensor]
     U: list[Tensor]
     H: Tensor
