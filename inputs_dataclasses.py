@@ -66,8 +66,11 @@ class SolverInputs(Sequence):
             self.L, self.U
         )
         self.num_unstable_list: list[int] = [int(mask.sum().item()) for mask in self.unstable_masks]
-        self.total_num_intermediate_unstable: int = sum(self.num_unstable_list[1:-1])
-        self.C = cls._get_C(self.unstable_masks, self.total_num_intermediate_unstable)
+
+        num_input_neurons = self.W[1].size(1)
+        # Solve for every unstable intermediate-neuron + every input-neuron.
+        self.num_solves: int = sum(self.num_unstable_list[1:-1]) + num_input_neurons
+        self.C = cls._get_C(self.unstable_masks, self.num_solves)
         self._layer_inputs: list[LayerInputs] = self._get_inputs_per_layer()
 
     def _validate_inputs(self) -> None:
@@ -92,10 +95,7 @@ class SolverInputs(Sequence):
         return stably_act_masks, stably_deact_masks, unstable_masks
 
     @staticmethod
-    def _get_C(
-        unstable_masks: list[Tensor],
-        total_num_intermediate_unstable: int,
-    ) -> list[Tensor]:
+    def _get_C(unstable_masks: list[Tensor], num_solves: int) -> list[Tensor]:
         l = len(unstable_masks) - 1
         C: list[Tensor] = []
 
@@ -104,12 +104,22 @@ class SolverInputs(Sequence):
             unstable_mask: Tensor = unstable_masks[layer]
             num_neurons: int = unstable_mask.size(0)
 
-            if layer == 0 or layer == l:  # Don't solve for 1st/last layer.
-                C.append(torch.zeros((total_num_intermediate_unstable * 2, num_neurons)))
+            # Solve for every neuron in input-layer,
+            # irregardless of whether they're unstable.
+            if layer == 0:
+                C_i = torch.zeros((num_solves * 2, num_neurons))
+                for index in range(num_neurons):
+                    C_i[batch_index][index] = 1  # Minimising
+                    C_i[batch_index + 1][index] = -1  # Maximising
+                    batch_index += 2
+                continue
+
+            if layer == l:  # Don't solve for last layer.
+                C.append(torch.zeros((num_solves * 2, num_neurons)))
                 continue
 
             unstable_indices: Tensor = torch.where(unstable_mask)[0]
-            C_i = torch.zeros((total_num_intermediate_unstable * 2, num_neurons))
+            C_i = torch.zeros((num_solves * 2, num_neurons))
             for index in unstable_indices:
                 C_i[batch_index][index] = 1  # Minimising
                 C_i[batch_index + 1][index] = -1  # Maximising
@@ -123,7 +133,7 @@ class SolverInputs(Sequence):
         # First-layer inputs.
         layer_inputs_list.append(
             InputLayerInputs(
-                batches=self.total_num_intermediate_unstable * 2,
+                batches=self.num_solves * 2,
                 num_neurons=self.W[1].size(1),
                 L_i=self.L[0],
                 U_i=self.U[0],
@@ -139,7 +149,7 @@ class SolverInputs(Sequence):
         for i in range(1, self.num_layers):
             layer_inputs_list.append(
                 IntermediateLayerInputs(
-                    batches=self.total_num_intermediate_unstable * 2,
+                    batches=self.num_solves * 2,
                     num_neurons=self.W[i].size(0),
                     L_i=self.L[i],
                     U_i=self.U[i],
@@ -166,7 +176,7 @@ class SolverInputs(Sequence):
         # Last-layer inputs.
         layer_inputs_list.append(
             OutputLayerInputs(
-                batches=self.total_num_intermediate_unstable * 2,
+                batches=self.num_solves * 2,
                 num_neurons=self.W[-1].size(0),
                 L_i=self.L[-1],
                 U_i=self.U[-1],
