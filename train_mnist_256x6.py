@@ -1,11 +1,6 @@
-import torch
-
 from inputs.mnist_256x6 import solver_inputs
-from modules.Solver import Solver
-from solve import train
+from solve import solve
 
-solver = Solver(solver_inputs)
-
-train(solver)
+solve(solver_inputs)
 
 print("Training finished!")

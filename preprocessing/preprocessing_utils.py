@@ -1,3 +1,5 @@
+from typing import TypeAlias
+
 import torch
 from torch import Tensor, nn
 
@@ -33,7 +35,13 @@ def decompose_model(model: nn.Module) -> tuple[int, list[Tensor], list[Tensor]]:
     return num_layers, W, b
 
 
-def get_C_for_layer(layer_index: int, unstable_masks: list[Tensor]) -> list[Tensor]:
+NeuronCoords: TypeAlias = tuple[int, int]
+"""Coordinates for a neuron in the model, in the form `(layer_index, neuron_index)`."""
+
+
+def get_C_for_layer(
+    layer_index: int, unstable_masks: list[Tensor]
+) -> tuple[list[Tensor], list[NeuronCoords]]:
     """Get the `C` to solve for the unstable neurons in layer `layer_index`,
     where `layer_index` can be any layer except the last (as we don't solve for
     output layer).
@@ -45,6 +53,7 @@ def get_C_for_layer(layer_index: int, unstable_masks: list[Tensor]) -> list[Tens
     assert layer_index < num_layers - 1
 
     C: list[Tensor] = []
+    coords: list[NeuronCoords] = []
 
     # For input layer, solve for all input neurons.
     if layer_index == 0:
@@ -55,13 +64,14 @@ def get_C_for_layer(layer_index: int, unstable_masks: list[Tensor]) -> list[Tens
             C_0[batch_index][index] = 1  # Minimising
             C_0[batch_index + 1][index] = -1  # Maximising
             batch_index += 2
+            coords.append((0, index))
 
         C.append(C_0)
         for i in range(1, num_layers):
             mask: Tensor = unstable_masks[i]
             num_neurons: int = len(mask)
             C.append(torch.zeros((num_input_neurons * 2, num_neurons)))
-        return C
+        return C, coords
 
     # Else, solve for only unstable neurons in the specified layer.
     num_unstable_in_target_layer = int(unstable_masks[layer_index].sum().item())
@@ -79,5 +89,6 @@ def get_C_for_layer(layer_index: int, unstable_masks: list[Tensor]) -> list[Tens
             C_i[batch_index][index] = 1  # Minimising
             C_i[batch_index + 1][index] = -1  # Maximising
             batch_index += 2
+            coords.append((i, int(index.item())))
         C.append(C_i)
-    return C
+    return C, coords

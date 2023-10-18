@@ -54,4 +54,20 @@ class Solver(nn.Module):
             - torch.stack([V[i] @ layers[i].vars.b_i for i in range(1, l + 1)]).sum(dim=0)
             + torch.stack([self.layers[i].get_obj_sum() for i in range(1, l)]).sum(dim=0)
         )
+        self.last_max_objective = max_objective
         return max_objective, theta
+
+    def get_updated_bounds(self, layer_index: int) -> tuple[Tensor, Tensor]:
+        """Returns `(new_lower_bounds, new_upper_bounds)` for layer `layer_index`."""
+        assert self.vars.solve_coords[0][0] == layer_index
+
+        # Clone the tensors to avoid modifying the original tensors
+        new_lower_bounds: Tensor = self.vars.inputs.L[layer_index].clone().detach()
+        new_upper_bounds: Tensor = self.vars.inputs.U[layer_index].clone().detach()
+
+        # Iterate over the solve_coords
+        for i, (_, coord) in enumerate(self.vars.solve_coords):
+            new_lower_bounds[coord] = self.last_max_objective[2 * i]
+            new_upper_bounds[coord] = self.last_max_objective[2 * i + 1]
+
+        return new_lower_bounds, new_upper_bounds

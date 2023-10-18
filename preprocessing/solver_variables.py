@@ -23,11 +23,14 @@ class SolverVariables(nn.Module):
         ) = preprocessing_utils.get_masks(inputs.L, inputs.U)
 
         # Initially set to solve for input layer.
-        self.C = preprocessing_utils.get_C_for_layer(0, self.unstable_masks)
+        self.C, self.solve_coords = preprocessing_utils.get_C_for_layer(0, self.unstable_masks)
         self.layer_vars: LayerVariablesList = self._split_vars_per_layer()
 
     def solve_for_layer(self, layer_index: int) -> None:
-        self.C = preprocessing_utils.get_C_for_layer(layer_index, self.unstable_masks)
+        (
+            self.C,
+            self.solve_coords,
+        ) = preprocessing_utils.get_C_for_layer(layer_index, self.unstable_masks)
         for i in range(len(self.layer_vars)):
             self.layer_vars[i].set_C_i(self.C[i])
 
