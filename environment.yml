@@ -136,4 +136,5 @@ dependencies:
   - pip:
       - torchaudio==2.0.2
       - torchvision==0.15.2
+      - tqdm==4.66.1
 prefix: C:\Users\shaun\anaconda3\envs\ml-proj
