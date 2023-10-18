@@ -27,7 +27,7 @@ class Solver(nn.Module):
             for layer in self.layers:
                 layer.clamp_parameters()
 
-    def forward(self) -> Tensor:
+    def forward(self) -> tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
         layers = self.layers  # fmt: skip
 
@@ -39,19 +39,20 @@ class Solver(nn.Module):
         for i in range(l - 1, 0, -1):  # From l-1 to 1 (inclusive)
             V[i] = layers[i].forward(V[i + 1])
 
-        loss = -self.compute_max_objective(V)
-        return loss.sum()
+        max_objective, theta = self.compute_max_objective(V)
+        loss = -max_objective
+        return loss.sum(), theta
 
-    def compute_max_objective(self, V: list[Tensor]) -> Tensor:
+    def compute_max_objective(self, V: list[Tensor]) -> tuple[Tensor, Tensor]:
         layers, d = self.layers, self.vars.d
 
         l = len(layers) - 1
-        relu_tensor: Tensor = layers[0].vars.C_i - V[1] @ layers[1].vars.W_i
+        theta: Tensor = layers[0].vars.C_i - V[1] @ layers[1].vars.W_i
         max_objective: Tensor = (
-            (F.relu(relu_tensor) @ layers[0].vars.L_i)
-            - (F.relu(-relu_tensor) @ layers[0].vars.U_i)
+            (F.relu(theta) @ layers[0].vars.L_i)
+            - (F.relu(-theta) @ layers[0].vars.U_i)
             + layers[-1].gamma @ d
             - torch.stack([V[i] @ layers[i].vars.b_i for i in range(1, l + 1)]).sum(dim=0)
             + torch.stack([self.layers[i].get_obj_sum() for i in range(1, l)]).sum(dim=0)
         )
-        return max_objective
+        return max_objective, theta

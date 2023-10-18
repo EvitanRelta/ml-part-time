@@ -21,7 +21,7 @@ prev_loss = float("inf")
 # Gradient Descent
 for epoch in range(n_epochs):
     # Forward pass: Compute loss
-    loss = solver.forward()
+    loss, theta = solver.forward()
 
     # Check if the change in loss is less than the threshold, if so, stop training
     if abs(prev_loss - loss.item()) < threshold:
