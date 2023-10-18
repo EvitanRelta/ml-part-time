@@ -3,6 +3,7 @@ import os
 import torch
 from torch import Tensor, nn
 
+from preprocessing.solver_inputs import SolverInputs
 from utils import load_onnx_model
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -45,3 +46,5 @@ intermediate unstable neurons and their respective inputs."""
 p: list[Tensor] = loaded_vars["p"]
 """`p` vector in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
+
+solver_inputs = SolverInputs(model, 7, L, U, H, d, P, P_hat, p)

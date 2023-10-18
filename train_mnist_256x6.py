@@ -1,11 +1,9 @@
 import torch
 
-from inputs.mnist_256x6 import H, L, P, P_hat, U, d, model, p
-from inputs_dataclasses import SolverInputs
-from Solver import Solver
+from inputs.mnist_256x6 import solver_inputs
+from modules.Solver import Solver
 
-inputs = SolverInputs(model=model, L=L, U=U, H=H, d=d, P=P, P_hat=P_hat, p=p)
-solver = Solver(inputs)
+solver = Solver(solver_inputs)
 
 # Define the optimizer
 learning_rate = 0.01

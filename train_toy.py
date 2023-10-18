@@ -1,23 +1,9 @@
 import torch
 
-from inputs.toy_example import H, L, P, P_hat, U, _alpha, _gamma, _pi, d, model, p
-from inputs_dataclasses import SolverInputs
-from Solver import Solver
+from inputs.toy_example import solver_inputs
+from modules.Solver import Solver
 
-inputs = SolverInputs(
-    model=model,
-    L=L,
-    U=U,
-    H=H,
-    d=d,
-    P=P,
-    P_hat=P_hat,
-    p=p,
-    initial_gamma=_gamma,
-    initial_pi=_pi,
-    initial_alpha=_alpha,
-)
-solver = Solver(inputs)
+solver = Solver(solver_inputs)
 
 # Define the optimizer
 learning_rate = 0.01

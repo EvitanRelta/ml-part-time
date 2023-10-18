@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor, nn
 
+from preprocessing.solver_inputs import SolverInputs
 from utils import load_onnx_model
 
 model: nn.Module = load_onnx_model("./inputs/toy_example.onnx")
@@ -83,8 +84,4 @@ p: list[Tensor] = [
 """`p` vector in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
-
-# Testing value.
-_gamma: Tensor = torch.tensor([3, 1, 4, 1, 5, 9, 2]).float()
-_pi: list[Tensor] = [torch.tensor([0.5, 2, 3, 8, 5, 6]).float()]
-_alpha: list[Tensor] = [torch.tensor([0.4, 0.6]).float()]
+solver_inputs = SolverInputs(model, 0, L, U, H, d, P, P_hat, p)
