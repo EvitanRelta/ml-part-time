@@ -28,8 +28,8 @@ def decompose_model(model: nn.Module) -> tuple[int, list[Tensor], list[Tensor]]:
     linear_layers = [layer for layer in model.children() if isinstance(layer, nn.Linear)]
     num_layers: int = len(linear_layers)
 
-    W: list[Tensor] = [torch.empty(0)] + [layer.weight.clone().detach() for layer in linear_layers]
-    b: list[Tensor] = [torch.empty(0)] + [layer.bias.clone().detach() for layer in linear_layers]
+    W: list[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
+    b: list[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
     return num_layers, W, b
 
 
