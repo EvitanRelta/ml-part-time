@@ -40,8 +40,7 @@ class Solver(nn.Module):
             V[i] = layers[i].forward(V[i + 1])
 
         max_objective, theta = self.compute_max_objective(V)
-        loss = -max_objective
-        return loss.sum(), theta
+        return max_objective, theta
 
     def compute_max_objective(self, V: list[Tensor]) -> tuple[Tensor, Tensor]:
         layers, d = self.layers, self.vars.d

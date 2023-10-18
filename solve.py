@@ -23,7 +23,8 @@ def train(solver: Solver, lr: float = 1, stop_threshold: float = 1e-4, max_epoch
     pbar = tqdm(range(max_epoches), desc="Training", unit="epoch")
 
     for epoch in pbar:
-        loss, theta = solver.forward()
+        max_objective, theta = solver.forward()
+        loss = -max_objective.sum()
 
         # Check if the change in loss is less than the threshold, if so, stop training
         if abs(prev_loss - loss.item()) < stop_threshold:
