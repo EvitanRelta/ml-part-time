@@ -67,27 +67,28 @@ def train(solver: Solver, lr: float = 1, stop_threshold: float = 1e-4):
     while True:
         max_objective, theta = solver.forward()
         loss = -max_objective.sum()
+        loss_float: float = loss.item()
         theta_list.append(theta)
 
         # Check if the change in loss is less than the threshold, if so, stop training
-        if abs(prev_loss - loss.item()) < stop_threshold:
-            pbar.set_description(f"Training stopped at epoch {epoch}, Loss: {-loss.item()}")
+        if abs(prev_loss - loss_float) < stop_threshold:
+            pbar.set_description(f"Training stopped at epoch {epoch}, Loss: {loss_float}")
             pbar.close()  # Close the tqdm loop when training stops
             break
 
-        prev_loss = loss.item()
+        prev_loss = loss_float
 
         # Backward pass and optimization
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step(loss.item())
+        scheduler.step(loss_float)
 
         solver.clamp_parameters()
 
         # Set the description for tqdm
         current_lr = optimizer.param_groups[0]["lr"]
-        pbar.set_postfix({"Loss": -loss.item(), "LR": current_lr})
+        pbar.set_postfix({"Loss": loss_float, "LR": current_lr})
         pbar.update()
         epoch += 1
 
