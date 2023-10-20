@@ -40,10 +40,10 @@ class EarlyStopHandler:
 
 def train(
     solver: Solver,
-    max_lr: float = 1,
-    min_lr: float = 1e-5,
+    max_lr: float = 2,
+    min_lr: float = 1e-6,
     stop_patience: int = 10,
-    stop_threshold: float = 1e-4,
+    stop_threshold: float = 1e-3,
 ) -> Tensor:
     """Train `solver` until convergence.
 
@@ -64,9 +64,9 @@ def train(
     optimizer = Adam(solver.parameters(), max_lr)
     scheduler = ReduceLROnPlateau(
         optimizer,
-        factor=0.3,
-        patience=2,
-        threshold=0.0001,
+        factor=0.5,
+        patience=1,
+        threshold=0.01,
         min_lr=min_lr,
     )
     early_stop_handler = EarlyStopHandler(stop_patience, stop_threshold)
