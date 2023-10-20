@@ -42,7 +42,7 @@ def solve(solver_inputs: SolverInputs) -> tuple[bool, list[Tensor] | None, list[
         unique_concrete_inputs = torch.unique(concrete_inputs, dim=0)
         assert isinstance(unique_concrete_inputs, Tensor)
 
-        if not solver.adv_check_model.forward(unique_concrete_inputs):
+        if solver.adv_check_model.forward(unique_concrete_inputs):
             return False, None, None
     return True, new_L, new_U
 
