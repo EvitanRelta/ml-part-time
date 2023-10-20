@@ -64,12 +64,9 @@ def train(
     optimizer = Adam(solver.parameters(), max_lr)
     scheduler = ReduceLROnPlateau(
         optimizer,
-        mode="min",
         factor=0.3,
         patience=2,
         threshold=0.0001,
-        threshold_mode="rel",
-        cooldown=0,
         min_lr=min_lr,
     )
     early_stop_handler = EarlyStopHandler(stop_patience, stop_threshold)
@@ -80,25 +77,26 @@ def train(
     pbar = tqdm(desc="Training", total=None, unit=" epoch", initial=epoch)
     while True:
         max_objective, theta = solver.forward()
-        loss = -max_objective.sum()
-        loss_float: float = loss.item()
-        theta_list.append(theta)
+        theta_list.append(theta)  # Accumulate thetas for later concrete-input adversarial checking.
 
-        # Check if the change in loss is less than the threshold, if so, stop training
+        loss = -max_objective.sum()
+        loss_float = loss.item()
+
         if early_stop_handler.is_early_stopped(loss_float):
             pbar.set_description(f"Training stopped at epoch {epoch}, Loss: {loss_float}")
-            pbar.close()  # Close the tqdm loop when training stops
+            pbar.close()
+            print()
             break
 
-        # Backward pass and optimization
+        # Backward pass and optimization.
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         scheduler.step(loss_float)
 
+        # Clamp learnable parameters to their respective value ranges.
         solver.clamp_parameters()
 
-        # Set the description for tqdm
         current_lr = optimizer.param_groups[0]["lr"]
         pbar.set_postfix({"Loss": loss_float, "LR": current_lr})
         pbar.update()
