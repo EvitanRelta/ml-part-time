@@ -38,8 +38,30 @@ class EarlyStopHandler:
         return self._num_no_improvements >= self.patience
 
 
-def train(solver: Solver, lr: float = 1, stop_patience: int = 10, stop_threshold: float = 1e-4):
-    optimizer = Adam(solver.parameters(), lr)
+def train(
+    solver: Solver,
+    max_lr: float = 1,
+    min_lr: float = 1e-5,
+    stop_patience: int = 10,
+    stop_threshold: float = 1e-4,
+) -> Tensor:
+    """Train `solver` until convergence.
+
+    Args:
+        solver (Solver): The `Solver` model to train.
+        max_lr (float, optional): Max learning-rate. Defaults to 1.
+        min_lr (float, optional): Min learning-rate to decay until. Defaults to 1e-5.
+        stop_patience (int, optional): Num. of epochs with no improvement, after which training \
+            should be stopped. Defaults to 10.
+        stop_threshold (float, optional): Threshold to determine whether there's "no improvement" \
+            for early-stopping. No improvement is when `current_loss >= best_loss * (1 - threshold)`. \
+            Defaults to 1e-4.
+
+    Returns:
+        Tensor: Accumulated batch of thetas, to be used for concrete-input adversarial checking. \
+            Shape: `(num_solves * num_epoches, num_input_neurons)`.
+    """
+    optimizer = Adam(solver.parameters(), max_lr)
     scheduler = ReduceLROnPlateau(
         optimizer,
         mode="min",
@@ -48,7 +70,7 @@ def train(solver: Solver, lr: float = 1, stop_patience: int = 10, stop_threshold
         threshold=0.0001,
         threshold_mode="rel",
         cooldown=0,
-        min_lr=1e-5,
+        min_lr=min_lr,
     )
     early_stop_handler = EarlyStopHandler(stop_patience, stop_threshold)
 
