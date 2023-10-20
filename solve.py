@@ -47,7 +47,7 @@ def solve(solver_inputs: SolverInputs) -> tuple[bool, list[Tensor] | None, list[
     return True, new_L, new_U
 
 
-def train(solver: Solver, lr: float = 1, stop_threshold: float = 1e-4, max_epoches: int = 10000):
+def train(solver: Solver, lr: float = 1, stop_threshold: float = 1e-4):
     optimizer = Adam(solver.parameters(), lr)
     scheduler = ReduceLROnPlateau(
         optimizer,
@@ -62,10 +62,9 @@ def train(solver: Solver, lr: float = 1, stop_threshold: float = 1e-4, max_epoch
     prev_loss = float("inf")
     theta_list: list[Tensor] = []
 
-    # Create tqdm object
-    pbar = tqdm(range(max_epoches), desc="Training", unit="epoch")
-
-    for epoch in pbar:
+    epoch = 1
+    pbar = tqdm(desc="Training", total=None, unit=" epoch", initial=epoch)
+    while True:
         max_objective, theta = solver.forward()
         loss = -max_objective.sum()
         theta_list.append(theta)
@@ -87,8 +86,9 @@ def train(solver: Solver, lr: float = 1, stop_threshold: float = 1e-4, max_epoch
         solver.clamp_parameters()
 
         # Set the description for tqdm
-        pbar.set_description(f"Epoch {epoch}")
         current_lr = optimizer.param_groups[0]["lr"]
         pbar.set_postfix({"Loss": -loss.item(), "LR": current_lr})
+        pbar.update()
+        epoch += 1
 
     return torch.cat(theta_list, dim=0)
