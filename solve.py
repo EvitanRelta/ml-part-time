@@ -42,4 +42,9 @@ def solve(solver_inputs: SolverInputs) -> tuple[bool, list[Tensor] | None, list[
 
         if solver.adv_check_model.forward(unique_concrete_inputs):
             return False, None, None
+
+    # Add last initial bounds.
+    new_L.append(solver.vars.inputs.L[-1])
+    new_U.append(solver.vars.inputs.U[-1])
+
     return True, new_L, new_U
