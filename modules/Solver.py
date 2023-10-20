@@ -62,12 +62,13 @@ class Solver(nn.Module):
         assert self.vars.solve_coords[0][0] == layer_index
 
         # Clone the tensors to avoid modifying the original tensors
-        new_lower_bounds: Tensor = self.vars.inputs.L[layer_index].clone().detach()
-        new_upper_bounds: Tensor = self.vars.inputs.U[layer_index].clone().detach()
+        new_L_i: Tensor = self.vars.inputs.L[layer_index].clone().detach()
+        new_U_i: Tensor = self.vars.inputs.U[layer_index].clone().detach()
 
         # Iterate over the solve_coords
         for i, (_, coord) in enumerate(self.vars.solve_coords):
-            new_lower_bounds[coord] = self.last_max_objective[2 * i]
-            new_upper_bounds[coord] = self.last_max_objective[2 * i + 1]
+            # Replace bounds only if they're better than the initial bounds.
+            new_L_i[coord] = torch.max(new_L_i[coord], self.last_max_objective[2 * i])
+            new_U_i[coord] = torch.min(new_U_i[coord], self.last_max_objective[2 * i + 1])
 
-        return new_lower_bounds, new_upper_bounds
+        return new_L_i, new_U_i
