@@ -15,7 +15,7 @@ class SolverVariables(nn.Module):
         self.d = inputs.d
 
         preprocessing_utils.freeze_model(inputs.model)
-        self.num_layers, self._W, self._b = preprocessing_utils.decompose_model(inputs.model)
+        self._W, self._b = preprocessing_utils.decompose_model(inputs.model)
         (
             self._stably_act_masks,
             self._stably_deact_masks,
@@ -86,7 +86,7 @@ class SolverVariables(nn.Module):
         )
 
         # Intermediate-layer inputs.
-        for i in range(1, self.num_layers):
+        for i in range(1, len(self._W)):
             layer_var_list.append(
                 IntermediateLayerVariables(
                     L_i=self._inputs.L[i],

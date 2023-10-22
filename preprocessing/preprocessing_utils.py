@@ -23,16 +23,15 @@ def get_masks(L: list[Tensor], U: list[Tensor]) -> tuple[list[Tensor], list[Tens
     return stably_act_masks, stably_deact_masks, unstable_masks
 
 
-def decompose_model(model: nn.Module) -> tuple[int, list[Tensor], list[Tensor]]:
+def decompose_model(model: nn.Module) -> tuple[list[Tensor], list[Tensor]]:
     """Returns the number of linear-layers, linear-layer weights and biases in
     that order.
     """
     linear_layers = [layer for layer in model.children() if isinstance(layer, nn.Linear)]
-    num_layers: int = len(linear_layers)
 
     W: list[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
     b: list[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
-    return num_layers, W, b
+    return W, b
 
 
 NeuronCoords: TypeAlias = tuple[int, int]
