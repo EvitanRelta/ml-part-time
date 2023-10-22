@@ -13,6 +13,7 @@ def compare_against_gurobi(
     initial_L: list[Tensor],
     initial_U: list[Tensor],
     gurobi_results: GurobiResults,
+    cutoff_threshold: float | None = None,
 ) -> None:
     # Only consider input + unstable intermediates neurons.
     masks = unstable_masks[1:-1]
@@ -48,6 +49,15 @@ def compare_against_gurobi(
     diff_U: list[Tensor] = [unstable_U[i] - gurobi_U[i] for i in range(list_len)]
     diff_new_L: list[Tensor] = [gurobi_L[i] - unstable_new_L[i] for i in range(list_len)]
     diff_new_U: list[Tensor] = [unstable_new_U[i] - gurobi_U[i] for i in range(list_len)]
+
+    if cutoff_threshold:
+        non_zero_L_mask: list[Tensor] = [(x > cutoff_threshold) for x in diff_L]
+        non_zero_U_mask: list[Tensor] = [(x > cutoff_threshold) for x in diff_U]
+
+        diff_L = [diff_L[i][non_zero_L_mask[i]] for i in range(list_len)]
+        diff_U = [diff_U[i][non_zero_U_mask[i]] for i in range(list_len)]
+        diff_new_L = [diff_new_L[i][non_zero_L_mask[i]] for i in range(list_len)]
+        diff_new_U = [diff_new_U[i][non_zero_U_mask[i]] for i in range(list_len)]
 
     plot_box_and_whiskers(
         [diff_L, diff_U, diff_new_L, diff_new_U],
