@@ -15,24 +15,24 @@ class SolverVariables(nn.Module):
         self.d = inputs.d
 
         preprocessing_utils.freeze_model(inputs.model)
-        self.num_layers, self.W, self.b = preprocessing_utils.decompose_model(inputs.model)
+        self.num_layers, self._W, self._b = preprocessing_utils.decompose_model(inputs.model)
         (
-            self.stably_act_masks,
-            self.stably_deact_masks,
-            self.unstable_masks,
+            self._stably_act_masks,
+            self._stably_deact_masks,
+            self._unstable_masks,
         ) = preprocessing_utils.get_masks(inputs.L, inputs.U)
 
         # Initially set to solve for input layer.
-        self.C, self.solve_coords = preprocessing_utils.get_C_for_layer(0, self.unstable_masks)
+        self._C, self.solve_coords = preprocessing_utils.get_C_for_layer(0, self._unstable_masks)
         self.layer_vars: LayerVariablesList = self._split_vars_per_layer()
 
     def solve_for_layer(self, layer_index: int) -> None:
         (
-            self.C,
+            self._C,
             self.solve_coords,
         ) = preprocessing_utils.get_C_for_layer(layer_index, self.unstable_masks)
         for i in range(len(self.layer_vars)):
-            self.layer_vars[i].set_C_i(self.C[i])
+            self.layer_vars[i].set_C_i(self._C[i])
 
     @property
     def L(self) -> list[Tensor]:
@@ -46,6 +46,30 @@ class SolverVariables(nn.Module):
     def H(self) -> Tensor:
         return self.layer_vars[-1].H
 
+    @property
+    def W(self) -> list[Tensor]:
+        return [self.layer_vars[i].W_i for i in range(1, len(self.layer_vars))]
+
+    @property
+    def b(self) -> list[Tensor]:
+        return [self.layer_vars[i].b_i for i in range(1, len(self.layer_vars))]
+
+    @property
+    def stably_act_masks(self) -> list[Tensor]:
+        return [x.stably_act_mask for x in self.layer_vars]
+
+    @property
+    def stably_deact_masks(self) -> list[Tensor]:
+        return [x.stably_deact_mask for x in self.layer_vars]
+
+    @property
+    def unstable_masks(self) -> list[Tensor]:
+        return [x.unstable_mask for x in self.layer_vars]
+
+    @property
+    def C(self) -> list[Tensor]:
+        return [x.C_i for x in self.layer_vars]
+
     def _split_vars_per_layer(self) -> "LayerVariablesList":
         layer_var_list: list[LayerVariables] = []
 
@@ -54,10 +78,10 @@ class SolverVariables(nn.Module):
             InputLayerVariables(
                 L_i=self._inputs.L[0],
                 U_i=self._inputs.U[0],
-                stably_act_mask=self.stably_act_masks[0],
-                stably_deact_mask=self.stably_deact_masks[0],
-                unstable_mask=self.unstable_masks[0],
-                C_i=self.C[0],
+                stably_act_mask=self._stably_act_masks[0],
+                stably_deact_mask=self._stably_deact_masks[0],
+                unstable_mask=self._unstable_masks[0],
+                C_i=self._C[0],
             )
         )
 
@@ -67,13 +91,13 @@ class SolverVariables(nn.Module):
                 IntermediateLayerVariables(
                     L_i=self._inputs.L[i],
                     U_i=self._inputs.U[i],
-                    stably_act_mask=self.stably_act_masks[i],
-                    stably_deact_mask=self.stably_deact_masks[i],
-                    unstable_mask=self.unstable_masks[i],
-                    C_i=self.C[i],
-                    W_i=self.W[i - 1],
-                    b_i=self.b[i - 1],
-                    W_next=self.W[i],
+                    stably_act_mask=self._stably_act_masks[i],
+                    stably_deact_mask=self._stably_deact_masks[i],
+                    unstable_mask=self._unstable_masks[i],
+                    C_i=self._C[i],
+                    W_i=self._W[i - 1],
+                    b_i=self._b[i - 1],
+                    W_next=self._W[i],
                     P_i=self._inputs.P[i - 1],
                     P_hat_i=self._inputs.P_hat[i - 1],
                     p_i=self._inputs.p[i - 1],
@@ -85,12 +109,12 @@ class SolverVariables(nn.Module):
             OutputLayerVariables(
                 L_i=self._inputs.L[-1],
                 U_i=self._inputs.U[-1],
-                stably_act_mask=self.stably_act_masks[-1],
-                stably_deact_mask=self.stably_deact_masks[-1],
-                unstable_mask=self.unstable_masks[-1],
-                C_i=self.C[-1],
-                W_i=self.W[-1],
-                b_i=self.b[-1],
+                stably_act_mask=self._stably_act_masks[-1],
+                stably_deact_mask=self._stably_deact_masks[-1],
+                unstable_mask=self._unstable_masks[-1],
+                C_i=self._C[-1],
+                W_i=self._W[-1],
+                b_i=self._b[-1],
                 H=self._inputs.H,
             )
         )
