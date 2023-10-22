@@ -3,6 +3,7 @@ import os
 import torch
 from torch import Tensor, nn
 
+from inputs.save_file_types import GurobiResults
 from preprocessing.solver_inputs import SolverInputs
 from utils import load_onnx_model
 
@@ -48,3 +49,6 @@ p: list[Tensor] = loaded_vars["p"]
 intermediate unstable neurons and their respective inputs."""
 
 solver_inputs = SolverInputs(model, 7, L, U, H, d, P, P_hat, p)
+gurobi_results: GurobiResults = torch.load(
+    os.path.join(CURRENT_DIR, "mnist_256x6_gurobi_results.pth")
+)
