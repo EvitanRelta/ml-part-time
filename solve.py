@@ -10,17 +10,18 @@ from train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu')) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False) -> tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu')) -> tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True]) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu')) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True]) -> tuple[Literal[False], None, None, Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu')) -> tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
 def solve(
     solver_inputs: SolverInputs,
     return_solver: bool = False,
+    device: torch.device = torch.device("cpu"),
 ) -> (
     tuple[bool, list[Tensor] | None, list[Tensor] | None]
     | tuple[bool, list[Tensor] | None, list[Tensor] | None, Solver]
@@ -32,7 +33,7 @@ def solve(
     Returns:
         `(is_falsified, new_lower_bounds, new_upper_bounds)`
     """
-    solver = Solver(solver_inputs)
+    solver = Solver(solver_inputs).to(device)
 
     new_L: list[Tensor] = []
     new_U: list[Tensor] = []
