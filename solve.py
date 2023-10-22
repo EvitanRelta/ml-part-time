@@ -10,11 +10,21 @@ from train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
 @overload
-def solve(solver_inputs: SolverInputs) -> tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False) -> tuple[Literal[False], None, None]: ...
+@overload
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True]) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
+@overload
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True]) -> tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
-def solve(solver_inputs: SolverInputs) -> tuple[bool, list[Tensor] | None, list[Tensor] | None]:
+def solve(
+    solver_inputs: SolverInputs,
+    return_solver: bool = False,
+) -> (
+    tuple[bool, list[Tensor] | None, list[Tensor] | None]
+    | tuple[bool, list[Tensor] | None, list[Tensor] | None, Solver]
+):
     """
     Args:
         solver_inputs (SolverInputs): Dataclass containing all the inputs needed to start solving.
@@ -41,10 +51,10 @@ def solve(solver_inputs: SolverInputs) -> tuple[bool, list[Tensor] | None, list[
         assert isinstance(unique_concrete_inputs, Tensor)
 
         if solver.adv_check_model.forward(unique_concrete_inputs):
-            return False, None, None
+            return (False, None, None, solver) if return_solver else (False, None, None)
 
     # Add last initial bounds.
     new_L.append(solver.vars.inputs.L[-1])
     new_U.append(solver.vars.inputs.U[-1])
 
-    return True, new_L, new_U
+    return (True, new_L, new_U, solver) if return_solver else (True, new_L, new_U)
