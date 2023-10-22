@@ -134,6 +134,12 @@ dependencies:
   - zlib=1.2.13=h8cc25b3_0
   - zstd=1.5.5=hd43e919_0
   - pip:
+      - contourpy==1.1.1
+      - cycler==0.12.1
+      - fonttools==4.43.1
+      - kiwisolver==1.4.5
+      - matplotlib==3.8.0
+      - pyparsing==3.1.1
       - torchaudio==2.0.2
       - torchvision==0.15.2
       - tqdm==4.66.1
