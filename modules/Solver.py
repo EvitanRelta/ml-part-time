@@ -54,7 +54,7 @@ class Solver(nn.Module):
             - torch.stack([V[i] @ layers[i].vars.b_i for i in range(1, l + 1)]).sum(dim=0)
             + torch.stack([self.layers[i].get_obj_sum() for i in range(1, l)]).sum(dim=0)
         )
-        self.last_max_objective = max_objective
+        self.last_max_objective = max_objective.detach()
         return max_objective, theta
 
     def get_updated_bounds(self, layer_index: int) -> tuple[Tensor, Tensor]:
