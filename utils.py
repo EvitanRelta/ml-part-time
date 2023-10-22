@@ -5,6 +5,8 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import List
 
+from inputs.save_file_types import SolverInputsSavedDict
+
 
 def load_onnx_model(onnx_file_path: str) -> nn.Module:
     onnx_model = onnx.load(onnx_file_path)
@@ -53,15 +55,13 @@ def convert_and_save_solver_inputs(
     p: List[Tensor] = [torch.tensor(x).float().squeeze() for x in smallpall]
 
     # Save to file.
-    torch.save(
-        {
-            "L": L,
-            "U": U,
-            "H": H,
-            "d": d,
-            "P": P,
-            "P_hat": P_hat,
-            "p": p,
-        },
-        save_filename,
-    )
+    saved_dict: SolverInputsSavedDict = {
+        "L": L,
+        "U": U,
+        "H": H,
+        "d": d,
+        "P": P,
+        "P_hat": P_hat,
+        "p": p,
+    }
+    torch.save(saved_dict, save_filename)

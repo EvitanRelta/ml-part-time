@@ -3,7 +3,7 @@ import os
 import torch
 from torch import Tensor, nn
 
-from inputs.save_file_types import GurobiResults
+from inputs.save_file_types import GurobiResults, SolverInputsSavedDict
 from preprocessing.solver_inputs import SolverInputs
 from utils import load_onnx_model
 
@@ -11,7 +11,7 @@ CURRENT_DIR = os.path.dirname(__file__)
 
 model: nn.Module = load_onnx_model(os.path.join(CURRENT_DIR, "mnist_256x6.onnx"))
 
-loaded_vars = torch.load(os.path.join(CURRENT_DIR, "mnist_256x6.pth"))
+loaded_vars: SolverInputsSavedDict = torch.load(os.path.join(CURRENT_DIR, "mnist_256x6.pth"))
 
 L: list[Tensor] = loaded_vars["L"]
 """Lower limits for neurons. Each list corresponds to the lower limits for a
