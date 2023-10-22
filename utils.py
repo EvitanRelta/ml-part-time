@@ -16,7 +16,6 @@ def seed_everything(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.use_deterministic_algorithms(True)
 
 
 def load_onnx_model(onnx_file_path: str) -> nn.Module:

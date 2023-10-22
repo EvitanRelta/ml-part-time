@@ -19,8 +19,9 @@ class Solver(nn.Module):
         self.adv_check_model = AdversarialCheckModel(inputs.model, inputs.ground_truth_neuron_index)
 
     def reset_and_solve_for_layer(self, layer_index: int) -> None:
+        device = self.vars.d.device
         self.vars.solve_for_layer(layer_index)
-        self.layers = SolverLayerList(self.vars)
+        self.layers = SolverLayerList(self.vars).to(device)
 
     def clamp_parameters(self):
         with torch.no_grad():
