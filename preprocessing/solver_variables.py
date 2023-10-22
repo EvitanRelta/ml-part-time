@@ -11,7 +11,8 @@ class SolverVariables(nn.Module):
 
     def __init__(self, inputs: SolverInputs) -> None:
         super().__init__()
-        self.d = inputs.d
+        self.d: Tensor
+        self.register_buffer("d", inputs.d)
 
         preprocessing_utils.freeze_model(inputs.model)
         W, b = preprocessing_utils.decompose_model(inputs.model)
@@ -169,15 +170,22 @@ class LayerVariables(nn.Module):
         C_i: Tensor,
     ) -> None:
         super().__init__()
-        self.L_i = L_i
-        self.U_i = U_i
-        self.stably_act_mask = stably_act_mask
-        self.stably_deact_mask = stably_deact_mask
-        self.unstable_mask = unstable_mask
-        self.C_i = C_i
+        self.L_i: Tensor
+        self.U_i: Tensor
+        self.stably_act_mask: Tensor
+        self.stably_deact_mask: Tensor
+        self.unstable_mask: Tensor
+        self.C_i: Tensor
+
+        self.register_buffer("L_i", L_i)
+        self.register_buffer("U_i", U_i)
+        self.register_buffer("stably_act_mask", stably_act_mask)
+        self.register_buffer("stably_deact_mask", stably_deact_mask)
+        self.register_buffer("unstable_mask", unstable_mask)
+        self.register_buffer("C_i", C_i)
 
     def set_C_i(self, C_i: Tensor) -> None:
-        self.C_i = C_i
+        self.register_buffer("C_i", C_i)
 
     @property
     def num_batches(self) -> int:
@@ -209,17 +217,28 @@ class IntermediateLayerVariables(LayerVariables):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.W_i = W_i
-        self.b_i = b_i
-        self.W_next = W_next
-        self.P_i = P_i
-        self.P_hat_i = P_hat_i
-        self.p_i = p_i
+        self.W_i: Tensor
+        self.b_i: Tensor
+        self.W_next: Tensor
+        self.P_i: Tensor
+        self.P_hat_i: Tensor
+        self.p_i: Tensor
+
+        self.register_buffer("W_i", W_i)
+        self.register_buffer("b_i", b_i)
+        self.register_buffer("W_next", W_next)
+        self.register_buffer("P_i", P_i)
+        self.register_buffer("P_hat_i", P_hat_i)
+        self.register_buffer("p_i", p_i)
 
 
 class OutputLayerVariables(LayerVariables):
     def __init__(self, W_i: Tensor, b_i: Tensor, H: Tensor, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.W_i = W_i
-        self.b_i = b_i
-        self.H = H
+        self.W_i: Tensor
+        self.b_i: Tensor
+        self.H: Tensor
+
+        self.register_buffer("W_i", W_i)
+        self.register_buffer("b_i", b_i)
+        self.register_buffer("H", H)
