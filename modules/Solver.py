@@ -62,8 +62,8 @@ class Solver(nn.Module):
         assert self.vars.solve_coords[0][0] == layer_index
 
         # Clone the tensors to avoid modifying the original tensors
-        new_L_i: Tensor = self.vars.inputs.L[layer_index].clone().detach()
-        new_U_i: Tensor = self.vars.inputs.U[layer_index].clone().detach()
+        new_L_i: Tensor = self.vars.L[layer_index].clone().detach()
+        new_U_i: Tensor = self.vars.U[layer_index].clone().detach()
 
         # Iterate over the solve_coords
         for i, (_, coord) in enumerate(self.vars.solve_coords):

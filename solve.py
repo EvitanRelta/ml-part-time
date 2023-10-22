@@ -54,7 +54,7 @@ def solve(
             return (False, None, None, solver) if return_solver else (False, None, None)
 
     # Add last initial bounds.
-    new_L.append(solver.vars.inputs.L[-1])
-    new_U.append(solver.vars.inputs.U[-1])
+    new_L.append(solver.vars.L[-1])
+    new_U.append(solver.vars.U[-1])
 
     return (True, new_L, new_U, solver) if return_solver else (True, new_L, new_U)

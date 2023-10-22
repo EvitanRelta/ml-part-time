@@ -11,7 +11,7 @@ class SolverVariables(nn.Module):
 
     def __init__(self, inputs: SolverInputs) -> None:
         super().__init__()
-        self.inputs = inputs
+        self._inputs = inputs
         self.d = inputs.d
 
         preprocessing_utils.freeze_model(inputs.model)
@@ -34,14 +34,26 @@ class SolverVariables(nn.Module):
         for i in range(len(self.layer_vars)):
             self.layer_vars[i].set_C_i(self.C[i])
 
+    @property
+    def L(self) -> list[Tensor]:
+        return [x.L_i for x in self.layer_vars]
+
+    @property
+    def U(self) -> list[Tensor]:
+        return [x.U_i for x in self.layer_vars]
+
+    @property
+    def H(self) -> Tensor:
+        return self.layer_vars[-1].H
+
     def _split_vars_per_layer(self) -> "LayerVariablesList":
         layer_var_list: list[LayerVariables] = []
 
         # First-layer inputs.
         layer_var_list.append(
             InputLayerVariables(
-                L_i=self.inputs.L[0],
-                U_i=self.inputs.U[0],
+                L_i=self._inputs.L[0],
+                U_i=self._inputs.U[0],
                 stably_act_mask=self.stably_act_masks[0],
                 stably_deact_mask=self.stably_deact_masks[0],
                 unstable_mask=self.unstable_masks[0],
@@ -53,8 +65,8 @@ class SolverVariables(nn.Module):
         for i in range(1, self.num_layers):
             layer_var_list.append(
                 IntermediateLayerVariables(
-                    L_i=self.inputs.L[i],
-                    U_i=self.inputs.U[i],
+                    L_i=self._inputs.L[i],
+                    U_i=self._inputs.U[i],
                     stably_act_mask=self.stably_act_masks[i],
                     stably_deact_mask=self.stably_deact_masks[i],
                     unstable_mask=self.unstable_masks[i],
@@ -62,24 +74,24 @@ class SolverVariables(nn.Module):
                     W_i=self.W[i - 1],
                     b_i=self.b[i - 1],
                     W_next=self.W[i],
-                    P_i=self.inputs.P[i - 1],
-                    P_hat_i=self.inputs.P_hat[i - 1],
-                    p_i=self.inputs.p[i - 1],
+                    P_i=self._inputs.P[i - 1],
+                    P_hat_i=self._inputs.P_hat[i - 1],
+                    p_i=self._inputs.p[i - 1],
                 )
             )
 
         # Last-layer inputs.
         layer_var_list.append(
             OutputLayerVariables(
-                L_i=self.inputs.L[-1],
-                U_i=self.inputs.U[-1],
+                L_i=self._inputs.L[-1],
+                U_i=self._inputs.U[-1],
                 stably_act_mask=self.stably_act_masks[-1],
                 stably_deact_mask=self.stably_deact_masks[-1],
                 unstable_mask=self.unstable_masks[-1],
                 C_i=self.C[-1],
                 W_i=self.W[-1],
                 b_i=self.b[-1],
-                H=self.inputs.H,
+                H=self._inputs.H,
             )
         )
 
