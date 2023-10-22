@@ -69,6 +69,7 @@ class Solver(nn.Module):
         for i, (_, coord) in enumerate(self.vars.solve_coords):
             # Replace bounds only if they're better than the initial bounds.
             new_L_i[coord] = torch.max(new_L_i[coord], self.last_max_objective[2 * i])
-            new_U_i[coord] = torch.min(new_U_i[coord], self.last_max_objective[2 * i + 1])
+            # New upper bounds is negation of objective func.
+            new_U_i[coord] = torch.min(new_U_i[coord], -self.last_max_objective[2 * i + 1])
 
         return new_L_i, new_U_i
