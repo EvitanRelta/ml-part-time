@@ -17,8 +17,11 @@ class SolverInputs:
     P: list[Tensor]
     P_hat: list[Tensor]
     p: list[Tensor]
+    skip_validation: bool = False
 
     def __post_init__(self) -> None:
+        if self.skip_validation:
+            return
         self._validate_types()
         self._validate_tensor_dtype()
         self._validate_dimensions()
