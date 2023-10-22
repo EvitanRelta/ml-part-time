@@ -65,8 +65,8 @@ def train(
     scheduler = ReduceLROnPlateau(
         optimizer,
         factor=0.5,
-        patience=1,
-        threshold=0.01,
+        patience=3,
+        threshold=0.001,
         min_lr=min_lr,
     )
     early_stop_handler = EarlyStopHandler(stop_patience, stop_threshold)
