@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import onnx
 import onnx2torch
@@ -6,6 +8,15 @@ from torch import Tensor, nn
 from typing_extensions import List
 
 from inputs.save_file_types import SolverInputsSavedDict
+
+
+def seed_everything(seed: int) -> None:
+    """Seeds `random`, `numpy`, `torch` with `seed` and makes computation deterministic."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.use_deterministic_algorithms(True)
 
 
 def load_onnx_model(onnx_file_path: str) -> nn.Module:
