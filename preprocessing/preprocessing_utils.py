@@ -23,16 +23,15 @@ def get_masks(L: list[Tensor], U: list[Tensor]) -> tuple[list[Tensor], list[Tens
     return stably_act_masks, stably_deact_masks, unstable_masks
 
 
-def decompose_model(model: nn.Module) -> tuple[int, list[Tensor], list[Tensor]]:
+def decompose_model(model: nn.Module) -> tuple[list[Tensor], list[Tensor]]:
     """Returns the number of linear-layers, linear-layer weights and biases in
     that order.
     """
     linear_layers = [layer for layer in model.children() if isinstance(layer, nn.Linear)]
-    num_layers: int = len(linear_layers)
 
     W: list[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
     b: list[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
-    return num_layers, W, b
+    return W, b
 
 
 NeuronCoords: TypeAlias = tuple[int, int]
@@ -49,6 +48,7 @@ def get_C_for_layer(
     If `layer_index == 0`, `C` will solve all inputs neurons (irregardless of
     whether they're unstable).
     """
+    device = unstable_masks[0].device
     num_layers = len(unstable_masks)
     assert layer_index < num_layers - 1
 
@@ -58,7 +58,7 @@ def get_C_for_layer(
     # For input layer, solve for all input neurons.
     if layer_index == 0:
         num_input_neurons = len(unstable_masks[0])
-        C_0 = torch.zeros((num_input_neurons * 2, num_input_neurons))
+        C_0 = torch.zeros((num_input_neurons * 2, num_input_neurons)).to(device)
         batch_index: int = 0
         for index in range(num_input_neurons):
             C_0[batch_index][index] = 1  # Minimising
@@ -70,7 +70,7 @@ def get_C_for_layer(
         for i in range(1, num_layers):
             mask: Tensor = unstable_masks[i]
             num_neurons: int = len(mask)
-            C.append(torch.zeros((num_input_neurons * 2, num_neurons)))
+            C.append(torch.zeros((num_input_neurons * 2, num_neurons)).to(device))
         return C, coords
 
     # Else, solve for only unstable neurons in the specified layer.
@@ -79,11 +79,11 @@ def get_C_for_layer(
         mask: Tensor = unstable_masks[i]
         num_neurons: int = len(mask)
         if i != layer_index:
-            C.append(torch.zeros((num_unstable_in_target_layer * 2, num_neurons)))
+            C.append(torch.zeros((num_unstable_in_target_layer * 2, num_neurons)).to(device))
             continue
 
         unstable_indices: Tensor = torch.where(mask)[0]
-        C_i = torch.zeros((num_unstable_in_target_layer * 2, num_neurons))
+        C_i = torch.zeros((num_unstable_in_target_layer * 2, num_neurons)).to(device)
         batch_index: int = 0
         for index in unstable_indices:
             C_i[batch_index][index] = 1  # Minimising

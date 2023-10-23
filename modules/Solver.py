@@ -19,8 +19,9 @@ class Solver(nn.Module):
         self.adv_check_model = AdversarialCheckModel(inputs.model, inputs.ground_truth_neuron_index)
 
     def reset_and_solve_for_layer(self, layer_index: int) -> None:
+        device = self.vars.d.device
         self.vars.solve_for_layer(layer_index)
-        self.layers = SolverLayerList(self.vars)
+        self.layers = SolverLayerList(self.vars).to(device)
 
     def clamp_parameters(self):
         with torch.no_grad():
@@ -55,15 +56,15 @@ class Solver(nn.Module):
             + torch.stack([self.layers[i].get_obj_sum() for i in range(1, l)]).sum(dim=0)
         )
         self.last_max_objective = max_objective.detach()
-        return max_objective, theta
+        return max_objective, theta.detach()
 
     def get_updated_bounds(self, layer_index: int) -> tuple[Tensor, Tensor]:
         """Returns `(new_lower_bounds, new_upper_bounds)` for layer `layer_index`."""
         assert self.vars.solve_coords[0][0] == layer_index
 
         # Clone the tensors to avoid modifying the original tensors
-        new_L_i: Tensor = self.vars.inputs.L[layer_index].clone().detach()
-        new_U_i: Tensor = self.vars.inputs.U[layer_index].clone().detach()
+        new_L_i: Tensor = self.vars.L[layer_index].clone().detach()
+        new_U_i: Tensor = self.vars.U[layer_index].clone().detach()
 
         # Iterate over the solve_coords
         for i, (_, coord) in enumerate(self.vars.solve_coords):

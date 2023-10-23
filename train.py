@@ -40,15 +40,22 @@ class EarlyStopHandler:
 
 def train(
     solver: Solver,
+    num_epoch_adv_check: int = 10,
     max_lr: float = 2,
     min_lr: float = 1e-6,
     stop_patience: int = 10,
     stop_threshold: float = 1e-3,
-) -> Tensor:
+) -> bool:
     """Train `solver` until convergence.
+
+    - Returns `True` if `solver` was trained to convergence without problems.
+    - Returns `False` if training was stopped prematurely because it failed the
+      adversarial check (ie. `is_falsified = False`).
 
     Args:
         solver (Solver): The `Solver` model to train.
+        num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
+            epochs.
         max_lr (float, optional): Max learning-rate. Defaults to 1.
         min_lr (float, optional): Min learning-rate to decay until. Defaults to 1e-5.
         stop_patience (int, optional): Num. of epochs with no improvement, after which training \
@@ -58,8 +65,8 @@ def train(
             Defaults to 1e-4.
 
     Returns:
-        Tensor: Accumulated batch of thetas, to be used for concrete-input adversarial checking. \
-            Shape: `(num_solves * num_epoches, num_input_neurons)`.
+        bool: `True` if `solver` is trained to convergence, `False` if training was stopped \
+            prematurely from failed adversarial check.
     """
     optimizer = Adam(solver.parameters(), max_lr)
     scheduler = ReduceLROnPlateau(
@@ -97,9 +104,31 @@ def train(
         # Clamp learnable parameters to their respective value ranges.
         solver.clamp_parameters()
 
+        if epoch % num_epoch_adv_check == 0:
+            # Check if accumulated thetas fails adversarial check.
+            # If it fails, stop prematurely. If it passes, purge the
+            # accumulated thetas to free up memory.
+            if fails_adv_check(solver, theta_list):
+                return False
+            theta_list = []
+
         current_lr = optimizer.param_groups[0]["lr"]
         pbar.set_postfix({"Loss": loss_float, "LR": current_lr})
         pbar.update()
         epoch += 1
 
-    return torch.cat(theta_list, dim=0)
+    if len(theta_list) > 0 and fails_adv_check(solver, theta_list):
+        return False
+
+    return True
+
+
+def fails_adv_check(solver: Solver, theta_list: list[Tensor]) -> bool:
+    """Whether concrete inputs generated from `theta_list` fails the adversarial
+    check (ie. training should be stopped).
+    """
+    thetas = torch.cat(theta_list, dim=0)
+    L_0: Tensor = solver.vars.layer_vars[0].L_i.detach()
+    U_0: Tensor = solver.vars.layer_vars[0].U_i.detach()
+    concrete_inputs: Tensor = torch.where(thetas >= 0, L_0, U_0)
+    return solver.adv_check_model.forward(concrete_inputs)
