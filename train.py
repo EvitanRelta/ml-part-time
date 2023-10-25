@@ -46,11 +46,11 @@ def train(
     stop_patience: int = 10,
     stop_threshold: float = 1e-3,
 ) -> bool:
-    """Train `solver` until convergence.
+    """Train `solver` until convergence or until the problem is falsified, and
+    return whether the problem was falsified.
 
-    - Returns `True` if `solver` was trained to convergence without problems.
-    - Returns `False` if training was stopped prematurely because it failed the
-      adversarial check (ie. `is_falsified = False`).
+    - Returns `False` if `solver` was trained to convergence without problems.
+    - Returns `True` if training was stopped prematurely due to being falsified.
 
     Args:
         solver (Solver): The `Solver` model to train.
@@ -65,8 +65,8 @@ def train(
             Defaults to 1e-4.
 
     Returns:
-        bool: `True` if `solver` is trained to convergence, `False` if training was stopped \
-            prematurely from failed adversarial check.
+        bool: Whether the problem was falsified. `False` if `solver` was trained to \
+            convergence, `True` if training was stopped prematurely due to being falsified.
     """
     optimizer = Adam(solver.parameters(), max_lr)
     scheduler = ReduceLROnPlateau(
@@ -108,8 +108,8 @@ def train(
             # Check if accumulated thetas fails adversarial check.
             # If it fails, stop prematurely. If it passes, purge the
             # accumulated thetas to free up memory.
-            if fails_adv_check(solver, theta_list):
-                return False
+            if is_falsified_by_concrete_inputs(solver, theta_list):
+                return True
             theta_list = []
 
         current_lr = optimizer.param_groups[0]["lr"]
@@ -117,15 +117,15 @@ def train(
         pbar.update()
         epoch += 1
 
-    if len(theta_list) > 0 and fails_adv_check(solver, theta_list):
-        return False
+    if len(theta_list) > 0 and is_falsified_by_concrete_inputs(solver, theta_list):
+        return True
 
-    return True
+    return False
 
 
-def fails_adv_check(solver: Solver, theta_list: list[Tensor]) -> bool:
-    """Whether concrete inputs generated from `theta_list` fails the adversarial
-    check (ie. training should be stopped).
+def is_falsified_by_concrete_inputs(solver: Solver, theta_list: list[Tensor]) -> bool:
+    """Whether concrete inputs generated from `theta_list` falsifies the problem
+    via the adversarial-check model (ie. training should be stopped).
     """
     thetas = torch.cat(theta_list, dim=0)
     L_0: Tensor = solver.vars.layer_vars[0].L_i.detach()

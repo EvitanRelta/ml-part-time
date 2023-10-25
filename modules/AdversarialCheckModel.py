@@ -14,11 +14,14 @@ class AdversarialCheckModel(nn.Module):
         self.model = model
         self.ground_truth_neuron_index = ground_truth_neuron_index
 
-    def forward(self, batched_input: Tensor) -> bool:
-        """Returns `True` if any `y_i - y_g >= 0` where `y_g` is the
-        "ground-truth" neuron's output, and `y_i` is any other output-neuron.
+    def forward(self, batched_concrete_inputs: Tensor) -> bool:
+        """Returns whether any of the concrete inputs falsifies the problem.
+
+        Specifically, returns `True` if any `y_i - y_g >= 0`, where:
+        - `y_g` is the "ground-truth" neuron's output
+        - `y_i` is any other output-neuron.
         """
-        pred = self.model.forward(batched_input)
+        pred = self.model.forward(batched_concrete_inputs)
         assert isinstance(pred, Tensor)
 
         num_batches, num_output = pred.shape
