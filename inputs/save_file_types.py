@@ -17,3 +17,4 @@ class SolverInputsSavedDict(TypedDict):
     P: list[Tensor]
     P_hat: list[Tensor]
     p: list[Tensor]
+    ground_truth_neuron_index: int

@@ -31,6 +31,7 @@ def convert_and_save_solver_inputs(
     smallpall: List[np.ndarray],
     Hmatrix: np.ndarray,
     dvector: np.ndarray,
+    ground_truth_neuron_index: int,
     save_filename: str = "dump.pth",
 ) -> None:
     """Converts raw solver inputs from numpy arrays to pytorch, then saves them
@@ -54,6 +55,9 @@ def convert_and_save_solver_inputs(
     assert isinstance(smallpall, np.ndarray), array_error_msg.format(var="smallpall")
     assert isinstance(Hmatrix, np.ndarray), array_error_msg.format(var="Hmatrix")
     assert isinstance(dvector, np.ndarray), array_error_msg.format(var="dvector")
+    assert isinstance(
+        ground_truth_neuron_index, int
+    ), "`ground_truth_neuron_index` is not type `int`."
 
     # Convert numpy arrays to PyTorch tensors and then into the formats used in the solver.
     L: List[Tensor] = [torch.tensor(x).float().squeeze() for x in lbounds]
@@ -73,5 +77,6 @@ def convert_and_save_solver_inputs(
         "P": P,
         "P_hat": P_hat,
         "p": p,
+        "ground_truth_neuron_index": ground_truth_neuron_index,
     }
     torch.save(saved_dict, save_filename)

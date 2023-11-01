@@ -1,11 +1,16 @@
+import os
+
 import torch
 from torch import Tensor, nn
 
+from inputs.utils import set_abs_path_to
 from preprocessing.solver_inputs import SolverInputs
 from utils import load_onnx_model
 
-model: nn.Module = load_onnx_model("./inputs/toy_example.onnx")
+CURRENT_DIR = os.path.dirname(__file__)
+get_abs_path = set_abs_path_to(CURRENT_DIR)
 
+model: nn.Module = load_onnx_model(get_abs_path("toy_example.onnx"))
 
 L: list[Tensor] = [
     torch.tensor([-1, -1]).float(),
@@ -84,4 +89,16 @@ p: list[Tensor] = [
 """`p` vector in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
-solver_inputs = SolverInputs(model, 0, L, U, H, d, P, P_hat, p)
+ground_truth_neuron_index: int = 0
+
+solver_inputs = SolverInputs(
+    model=model,
+    ground_truth_neuron_index=ground_truth_neuron_index,
+    L=L,
+    U=U,
+    H=H,
+    d=d,
+    P=P,
+    P_hat=P_hat,
+    p=p,
+)
