@@ -60,13 +60,13 @@ def convert_and_save_solver_inputs(
     ), "`ground_truth_neuron_index` is not type `int`."
 
     # Convert numpy arrays to PyTorch tensors and then into the formats used in the solver.
-    L: List[Tensor] = [torch.tensor(x).float().squeeze() for x in lbounds]
-    U: List[Tensor] = [torch.tensor(x).float().squeeze() for x in ubounds]
-    H: Tensor = torch.tensor(Hmatrix).float().squeeze()
-    d: Tensor = torch.tensor(dvector).float().squeeze()
-    P: List[Tensor] = [torch.tensor(x).float().squeeze() for x in Pall]
-    P_hat: List[Tensor] = [torch.tensor(x).float().squeeze() for x in Phatall]
-    p: List[Tensor] = [torch.tensor(x).float().squeeze() for x in smallpall]
+    L: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in lbounds]
+    U: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in ubounds]
+    H: Tensor = torch.atleast_2d(torch.tensor(Hmatrix).float().squeeze())
+    d: Tensor = torch.atleast_1d(torch.tensor(dvector).float().squeeze())
+    P: List[Tensor] = [torch.atleast_2d(torch.tensor(x).float().squeeze()) for x in Pall]
+    P_hat: List[Tensor] = [torch.atleast_2d(torch.tensor(x).float().squeeze()) for x in Phatall]
+    p: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in smallpall]
 
     # Save to file.
     saved_dict: SolverInputsSavedDict = {
