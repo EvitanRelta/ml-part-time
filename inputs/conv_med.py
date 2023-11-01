@@ -13,9 +13,10 @@ get_abs_path = set_abs_path_to(CURRENT_DIR)
 
 
 model: nn.Module = load_onnx_model(get_abs_path("conv_med.onnx"))
+model_wo_norm = nn.Sequential(*list(model.children())[4:])
 loaded_vars: SolverInputsSavedDict = torch.load(get_abs_path("conv_med.pth"))
 solver_inputs = SolverInputs(
-    model=model,
+    model=model_wo_norm,
     ground_truth_neuron_index=loaded_vars["ground_truth_neuron_index"],
     L=loaded_vars["L"],
     U=loaded_vars["U"],
