@@ -55,6 +55,7 @@ class SolverInputs:
 
         assert self.H.dim() == 2
         assert self.d.dim() == 1
+        assert self.H.size(0) == self.d.size(0)
 
         assert len(self.P) == len(self.P_hat) == len(self.p)
         for i in range(len(self.P)):
@@ -81,3 +82,5 @@ class SolverInputs:
         assert len(self.P) == len(self.P_hat) == len(self.p) == num_intermediate_layers
         for i in range(num_intermediate_layers):
             assert self.P[i].size(1) == num_unstable_per_intermediate_layer[i]
+
+        assert self.H.size(1) == linear_layers[-1].weight.size(0)
