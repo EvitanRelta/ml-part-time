@@ -7,7 +7,7 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import List
 
-from inputs.save_file_types import SolverInputsSavedDict
+from .inputs.save_file_types import SolverInputsSavedDict
 
 
 def seed_everything(seed: int) -> None:

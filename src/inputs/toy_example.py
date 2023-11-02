@@ -3,9 +3,9 @@ import os
 import torch
 from torch import Tensor, nn
 
-from inputs.utils import set_abs_path_to
-from preprocessing.solver_inputs import SolverInputs
-from utils import load_onnx_model
+from ..preprocessing.solver_inputs import SolverInputs
+from ..utils import load_onnx_model
+from .utils import set_abs_path_to
 
 CURRENT_DIR = os.path.dirname(__file__)
 get_abs_path = set_abs_path_to(CURRENT_DIR)

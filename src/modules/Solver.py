@@ -4,9 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from preprocessing.solver_inputs import SolverInputs
-from preprocessing.solver_variables import SolverVariables
-
+from ..preprocessing.solver_inputs import SolverInputs
+from ..preprocessing.solver_variables import SolverVariables
 from .AdversarialCheckModel import AdversarialCheckModel
 from .solver_layers import SolverLayerList
 

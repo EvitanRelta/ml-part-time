@@ -5,14 +5,13 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from preprocessing.solver_variables import (
+from ..preprocessing.solver_variables import (
     InputLayerVariables,
     IntermediateLayerVariables,
     LayerVariables,
     OutputLayerVariables,
     SolverVariables,
 )
-
 from .solver_utils import bracket_minus, bracket_plus
 
 

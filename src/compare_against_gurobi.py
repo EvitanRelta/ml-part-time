@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from inputs.save_file_types import GurobiResults
+from .inputs.save_file_types import GurobiResults
 
 
 def compare_against_gurobi(

@@ -3,9 +3,9 @@ from typing import Literal, overload
 import torch
 from torch import Tensor
 
-from modules.Solver import Solver
-from preprocessing.solver_inputs import SolverInputs
-from train import train
+from .modules.Solver import Solver
+from .preprocessing.solver_inputs import SolverInputs
+from .train import train
 
 
 # fmt: off

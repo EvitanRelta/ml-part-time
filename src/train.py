@@ -4,7 +4,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.autonotebook import tqdm
 
-from modules.Solver import Solver
+from .modules.Solver import Solver
 
 
 class EarlyStopHandler:
