@@ -25,11 +25,11 @@ class SolverIntermediate(SolverLayer):
     @override
     def forward(self, V_next: Tensor) -> Tensor:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        W_next, num_batches, num_neurons, num_unstable, P, P_hat, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.vars.W_next, self.vars.num_batches, self.vars.num_neurons, self.vars.num_unstable, self.vars.P, self.vars.P_hat, self.vars.C, self.vars.stably_act_mask, self.vars.stably_deact_mask, self.vars.unstable_mask, self.pi, self.alpha, self.vars.U, self.vars.L  # fmt: skip
+        transposed_layer_next, num_batches, num_neurons, num_unstable, P, P_hat, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.vars.transposed_layer_next, self.vars.num_batches, self.vars.num_neurons, self.vars.num_unstable, self.vars.P, self.vars.P_hat, self.vars.C, self.vars.stably_act_mask, self.vars.stably_deact_mask, self.vars.unstable_mask, self.pi, self.alpha, self.vars.U, self.vars.L  # fmt: skip
         device = V_next.device
 
         V: Tensor = torch.zeros((num_batches, num_neurons)).to(device)
-        V_next_W_next = V_next @ W_next
+        V_next_W_next = transposed_layer_next.forward(V_next)
 
         # Stably activated.
         stably_activated_V: Tensor = V_next_W_next - C

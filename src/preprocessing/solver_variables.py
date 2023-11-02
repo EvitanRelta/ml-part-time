@@ -4,6 +4,7 @@ from torch import Tensor, nn
 
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
+from .transpose import UnaryForwardModule, transpose_model
 
 
 class SolverVariables(nn.Module):
@@ -15,7 +16,7 @@ class SolverVariables(nn.Module):
         self.register_buffer("d", inputs.d)
 
         preprocessing_utils.freeze_model(inputs.model)
-        W_list, b_list = preprocessing_utils.decompose_model(inputs.model)
+        transposed_layers, b_list = transpose_model(inputs.model)
         (
             stably_act_masks,
             stably_deact_masks,
@@ -27,7 +28,7 @@ class SolverVariables(nn.Module):
 
         self.layer_vars: LayerVariablesList = SolverVariables._split_vars_per_layer(
             inputs,
-            W_list,
+            transposed_layers,
             b_list,
             stably_act_masks,
             stably_deact_masks,
@@ -55,10 +56,6 @@ class SolverVariables(nn.Module):
         return self.layer_vars[-1].H
 
     @property
-    def W_list(self) -> List[Tensor]:
-        return [self.layer_vars[i].W for i in range(1, len(self.layer_vars))]
-
-    @property
     def b_list(self) -> List[Tensor]:
         return [self.layer_vars[i].b for i in range(1, len(self.layer_vars))]
 
@@ -81,7 +78,7 @@ class SolverVariables(nn.Module):
     @staticmethod
     def _split_vars_per_layer(
         inputs: SolverInputs,
-        W_list: List[Tensor],
+        transposed_layers: List[UnaryForwardModule],
         b_list: List[Tensor],
         stably_act_masks: List[Tensor],
         stably_deact_masks: List[Tensor],
@@ -103,7 +100,7 @@ class SolverVariables(nn.Module):
         )
 
         # Intermediate-layer inputs.
-        for i in range(1, len(W_list)):
+        for i in range(1, len(b_list)):
             layer_var_list.append(
                 IntermediateLayerVariables(
                     L=inputs.L_list[i],
@@ -112,9 +109,9 @@ class SolverVariables(nn.Module):
                     stably_deact_mask=stably_deact_masks[i],
                     unstable_mask=unstable_masks[i],
                     C=C_list[i],
-                    W=W_list[i - 1],
+                    transposed_layer=transposed_layers[i - 1],
                     b=b_list[i - 1],
-                    W_next=W_list[i],
+                    transposed_layer_next=transposed_layers[i],
                     P=inputs.P_list[i - 1],
                     P_hat=inputs.P_hat_list[i - 1],
                     p=inputs.p_list[i - 1],
@@ -130,7 +127,7 @@ class SolverVariables(nn.Module):
                 stably_deact_mask=stably_deact_masks[-1],
                 unstable_mask=unstable_masks[-1],
                 C=C_list[-1],
-                W=W_list[-1],
+                transposed_layer=transposed_layers[-1],
                 b=b_list[-1],
                 H=inputs.H,
             )
@@ -215,9 +212,9 @@ class InputLayerVariables(LayerVariables):
 class IntermediateLayerVariables(LayerVariables):
     def __init__(
         self,
-        W: Tensor,
+        transposed_layer: UnaryForwardModule,
         b: Tensor,
-        W_next: Tensor,
+        transposed_layer_next: UnaryForwardModule,
         P: Tensor,
         P_hat: Tensor,
         p: Tensor,
@@ -225,16 +222,15 @@ class IntermediateLayerVariables(LayerVariables):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.W: Tensor
+        self.transposed_layer = transposed_layer
+        self.transposed_layer_next = transposed_layer_next
+
         self.b: Tensor
-        self.W_next: Tensor
         self.P: Tensor
         self.P_hat: Tensor
         self.p: Tensor
 
-        self.register_buffer("W", W)
         self.register_buffer("b", b)
-        self.register_buffer("W_next", W_next)
         self.register_buffer("P", P)
         self.register_buffer("P_hat", P_hat)
         self.register_buffer("p", p)
@@ -243,17 +239,17 @@ class IntermediateLayerVariables(LayerVariables):
 class OutputLayerVariables(LayerVariables):
     def __init__(
         self,
-        W: Tensor,
+        transposed_layer: UnaryForwardModule,
         b: Tensor,
         H: Tensor,
         *args,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.W: Tensor
+        self.transposed_layer = transposed_layer
+
         self.b: Tensor
         self.H: Tensor
 
-        self.register_buffer("W", W)
         self.register_buffer("b", b)
         self.register_buffer("H", H)

@@ -46,7 +46,7 @@ class Solver(nn.Module):
         layers, d = self.layers, self.vars.d
 
         l = len(layers) - 1
-        theta: Tensor = layers[0].vars.C - V_list[1] @ layers[1].vars.W
+        theta: Tensor = layers[0].vars.C - layers[1].vars.transposed_layer.forward(V_list[1])
         max_objective: Tensor = (
             (F.relu(theta) @ layers[0].vars.L)
             - (F.relu(-theta) @ layers[0].vars.U)
