@@ -97,9 +97,10 @@ class SolverIntermediateLayer(SolverLayer):
         device = V_next.device
 
         V_i: Tensor = torch.zeros((num_batches, num_neurons)).to(device)
+        V_next_W_next = V_next @ W_next
 
         # Stably activated.
-        stably_activated_V_i: Tensor = V_next @ W_next - C_i
+        stably_activated_V_i: Tensor = V_next_W_next - C_i
         V_i[:, stably_act_mask] = stably_activated_V_i[:, stably_act_mask]
 
         # Stably deactivated.
@@ -109,7 +110,7 @@ class SolverIntermediateLayer(SolverLayer):
         if num_unstable == 0:
             return V_i
 
-        V_hat_i = (V_next @ W_next)[:, unstable_mask] - pi_i @ P_hat_i
+        V_hat_i = V_next_W_next[:, unstable_mask] - pi_i @ P_hat_i
         self.V_hat_i = V_hat_i
 
         V_i[:, unstable_mask] = (
