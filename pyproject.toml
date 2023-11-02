@@ -15,3 +15,14 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.dynamic.optional-dependencies]
 dev = {file = ["requirements.dev.txt"]}
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.autoflake]
+recursive = true
+in-place = true
+remove-all-unused-imports = true
