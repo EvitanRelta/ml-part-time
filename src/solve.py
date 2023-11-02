@@ -10,19 +10,20 @@ from .train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[False], None, None, Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
 def solve(
     solver_inputs: SolverInputs,
     return_solver: bool = False,
     device: torch.device = torch.device("cpu"),
     num_epoch_adv_check: int = 10,
+    run_adv_check: bool = True,
 ) -> (
     tuple[bool, list[Tensor] | None, list[Tensor] | None]
     | tuple[bool, list[Tensor] | None, list[Tensor] | None, Solver]
@@ -35,6 +36,7 @@ def solve(
         device (torch.device, optional): Device to compute on. Defaults to torch.device("cpu").
         num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
             epochs. Defaults to 10.
+        run_adv_check (bool, optional): Whether to run the adversarial check. Defaults to True.
 
     Returns:
         `(is_falsified, new_lower_bounds, new_upper_bounds)` and optionally, the `Solver` instance \
@@ -50,6 +52,7 @@ def solve(
         is_falsified = train(
             solver,
             num_epoch_adv_check=num_epoch_adv_check,
+            run_adv_check=run_adv_check,
         )
         if is_falsified:
             return (True, None, None, solver) if return_solver else (True, None, None)

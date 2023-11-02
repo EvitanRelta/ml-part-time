@@ -45,6 +45,7 @@ def train(
     min_lr: float = 1e-6,
     stop_patience: int = 10,
     stop_threshold: float = 1e-3,
+    run_adv_check: bool = True,
 ) -> bool:
     """Train `solver` until convergence or until the problem is falsified, and
     return whether the problem was falsified.
@@ -63,6 +64,7 @@ def train(
         stop_threshold (float, optional): Threshold to determine whether there's "no improvement" \
             for early-stopping. No improvement is when `current_loss >= best_loss * (1 - threshold)`. \
             Defaults to 1e-4.
+        run_adv_check (bool, optional): Whether to run the adversarial check. Defaults to True.
 
     Returns:
         bool: Whether the problem was falsified. `False` if `solver` was trained to \
@@ -84,7 +86,9 @@ def train(
     pbar = tqdm(desc="Training", total=None, unit=" epoch", initial=epoch)
     while True:
         max_objective, theta = solver.forward()
-        theta_list.append(theta)  # Accumulate thetas for later concrete-input adversarial checking.
+        if run_adv_check:
+            # Accumulate thetas for later concrete-input adversarial checking.
+            theta_list.append(theta)
 
         loss = -max_objective.sum()
         loss_float = loss.item()
@@ -104,7 +108,7 @@ def train(
         # Clamp learnable parameters to their respective value ranges.
         solver.clamp_parameters()
 
-        if epoch % num_epoch_adv_check == 0:
+        if run_adv_check and epoch % num_epoch_adv_check == 0:
             # Check if accumulated thetas fails adversarial check.
             # If it fails, stop prematurely. If it passes, purge the
             # accumulated thetas to free up memory.
@@ -117,7 +121,11 @@ def train(
         pbar.update()
         epoch += 1
 
-    if len(theta_list) > 0 and is_falsified_by_concrete_inputs(solver, theta_list):
+    if (
+        run_adv_check
+        and len(theta_list) > 0
+        and is_falsified_by_concrete_inputs(solver, theta_list)
+    ):
         return True
 
     return False
