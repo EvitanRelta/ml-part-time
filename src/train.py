@@ -55,7 +55,7 @@ def train(
     Args:
         solver (Solver): The `Solver` model to train.
         num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
-            epochs.
+            epochs. Defaults to 10.
         max_lr (float, optional): Max learning-rate. Defaults to 1.
         min_lr (float, optional): Min learning-rate to decay until. Defaults to 1e-5.
         stop_patience (int, optional): Num. of epochs with no improvement, after which training \

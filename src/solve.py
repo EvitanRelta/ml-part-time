@@ -30,9 +30,16 @@ def solve(
     """
     Args:
         solver_inputs (SolverInputs): Dataclass containing all the inputs needed to start solving.
+        return_solver (bool, optional): Whether to also return the `Solver` instance. \
+            Defaults to False.
+        device (torch.device, optional): Device to compute on. Defaults to torch.device("cpu").
+        num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
+            epochs. Defaults to 10.
 
     Returns:
-        `(is_falsified, new_lower_bounds, new_upper_bounds)`
+        `(is_falsified, new_lower_bounds, new_upper_bounds)` and optionally, the `Solver` instance \
+            as the last element if `return_solver == True`.
+
     """
     solver = Solver(solver_inputs).to(device)
 
