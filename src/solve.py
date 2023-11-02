@@ -10,18 +10,19 @@ from .train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu')) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu')) -> tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu')) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu')) -> tuple[Literal[False], None, None, Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10) -> tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
 def solve(
     solver_inputs: SolverInputs,
     return_solver: bool = False,
     device: torch.device = torch.device("cpu"),
+    num_epoch_adv_check: int = 10,
 ) -> (
     tuple[bool, list[Tensor] | None, list[Tensor] | None]
     | tuple[bool, list[Tensor] | None, list[Tensor] | None, Solver]
@@ -39,7 +40,10 @@ def solve(
     new_U: list[Tensor] = []
     for layer_index in range(len(solver.layers) - 1):  # Don't solve for last layer
         solver.reset_and_solve_for_layer(layer_index)
-        is_falsified = train(solver)
+        is_falsified = train(
+            solver,
+            num_epoch_adv_check=num_epoch_adv_check,
+        )
         if is_falsified:
             return (True, None, None, solver) if return_solver else (True, None, None)
 
