@@ -1,0 +1,4 @@
+autoflake>=2.2.1
+black>=23.10.1
+ipykernel>=6.25.2
+isort>=5.12.0

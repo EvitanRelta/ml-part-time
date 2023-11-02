@@ -1,0 +1,6 @@
+matplotlib>=3.8.0
+numpy>=1.25.2
+onnx>=1.13.1
+onnx2torch>=1.5.11
+tqdm>=4.66.1
+torch>=2.0.1
