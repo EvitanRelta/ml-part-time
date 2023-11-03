@@ -19,10 +19,10 @@ class SolverLayerList(nn.ModuleList):
     """Wrapper around `ModuleList` to contain `SolverLayer` modules."""
 
     def __init__(self, vars: SolverVariables):
-        layers: List[SolverLayer] = [SolverInputLayer(vars.layer_vars[0])]
+        layers: List[SolverLayer] = [SolverInput(vars.layer_vars[0])]
         for i in range(1, len(vars.layer_vars) - 1):
-            layers.append(SolverIntermediateLayer(vars.layer_vars[i]))
-        layers.append(SolverOutputLayer(vars.layer_vars[-1]))
+            layers.append(SolverIntermediate(vars.layer_vars[i]))
+        layers.append(SolverOutput(vars.layer_vars[-1]))
         super().__init__(layers)
 
     def __iter__(self) -> Iterator["SolverLayer"]:
@@ -30,11 +30,11 @@ class SolverLayerList(nn.ModuleList):
 
     # fmt: off
     @overload
-    def __getitem__(self, i: Literal[0]) -> "SolverInputLayer": ...
+    def __getitem__(self, i: Literal[0]) -> "SolverInput": ...
     @overload
-    def __getitem__(self, i: Literal[-1]) -> "SolverOutputLayer": ...
+    def __getitem__(self, i: Literal[-1]) -> "SolverOutput": ...
     @overload
-    def __getitem__(self, i: int) -> "SolverIntermediateLayer": ...
+    def __getitem__(self, i: int) -> "SolverIntermediate": ...
     # fmt: on
     def __getitem__(self, i: int) -> "SolverLayer":
         return super().__getitem__(i)  # type: ignore
@@ -59,7 +59,7 @@ class SolverLayer(ABC, nn.Module):
     # fmt: on
 
 
-class SolverInputLayer(SolverLayer):
+class SolverInput(SolverLayer):
     @override
     def __init__(self, vars: InputLayerVariables) -> None:
         super().__init__(vars)
@@ -77,7 +77,7 @@ class SolverInputLayer(SolverLayer):
     # fmt: on
 
 
-class SolverIntermediateLayer(SolverLayer):
+class SolverIntermediate(SolverLayer):
     @override
     def __init__(self, vars: IntermediateLayerVariables) -> None:
         super().__init__(vars)
@@ -147,7 +147,7 @@ class SolverIntermediateLayer(SolverLayer):
         )
 
 
-class SolverOutputLayer(SolverLayer):
+class SolverOutput(SolverLayer):
     @override
     def __init__(self, vars: OutputLayerVariables) -> None:
         super().__init__(vars)
