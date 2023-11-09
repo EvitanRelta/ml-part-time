@@ -1,4 +1,4 @@
-from typing import List, Protocol, Tuple, overload
+from typing import Protocol, Tuple, overload
 
 import torch
 from torch import Tensor, nn
@@ -7,23 +7,6 @@ from torch import Tensor, nn
 class UnaryForward(Protocol):
     def forward(self, input: Tensor) -> Tensor:
         ...
-
-
-def transpose_model(model: nn.Module) -> Tuple[List[UnaryForward], List[Tensor]]:
-    layers = [
-        layer
-        for layer in model.children()
-        if isinstance(layer, nn.Linear) or isinstance(layer, nn.Conv2d)
-    ]
-
-    tranposed_layers: List[nn.Module] = []
-    biases: List[Tensor] = []
-    for l in layers:
-        tranposed_layer, b = transpose_layer(l)
-        tranposed_layers.append(tranposed_layer)
-        biases.append(b)
-
-    return tranposed_layers, biases  # type: ignore
 
 
 # fmt: off

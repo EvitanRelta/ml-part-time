@@ -26,17 +26,6 @@ def get_masks(
     return stably_act_masks, stably_deact_masks, unstable_masks
 
 
-def decompose_model(model: nn.Module) -> Tuple[List[Tensor], List[Tensor]]:
-    """Returns the number of linear-layers, linear-layer weights and biases in
-    that order.
-    """
-    linear_layers = [layer for layer in model.children() if isinstance(layer, nn.Linear)]
-
-    W_list: List[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
-    b_list: List[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
-    return W_list, b_list
-
-
 NeuronCoords: TypeAlias = Tuple[int, int]
 """Coordinates for a neuron in the model, in the form `(layer_index, neuron_index)`."""
 
