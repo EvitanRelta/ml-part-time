@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from ...preprocessing.transpose import UnaryForwardModule
+from ...preprocessing.transpose import UnaryForward
 from ..solver_utils import bracket_minus, bracket_plus
 from .base_class import SolverLayer
 
@@ -19,9 +19,9 @@ class SolverIntermediate(SolverLayer):
         stably_deact_mask: Tensor,
         unstable_mask: Tensor,
         C: Tensor,
-        transposed_layer: UnaryForwardModule,
+        transposed_layer: UnaryForward,
         b: Tensor,
-        transposed_layer_next: UnaryForwardModule,
+        transposed_layer_next: UnaryForward,
         P: Tensor,
         P_hat: Tensor,
         p: Tensor,

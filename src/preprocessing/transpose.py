@@ -1,15 +1,15 @@
-from typing import List, Tuple, overload
+from typing import List, Protocol, Tuple, overload
 
 import torch
 from torch import Tensor, nn
 
 
-class UnaryForwardModule(nn.Module):
-    def forward(self, X: Tensor) -> Tensor:
+class UnaryForward(Protocol):
+    def forward(self, input: Tensor) -> Tensor:
         ...
 
 
-def transpose_model(model: nn.Module) -> Tuple[List[UnaryForwardModule], List[Tensor]]:
+def transpose_model(model: nn.Module) -> Tuple[List[UnaryForward], List[Tensor]]:
     layers = [
         layer
         for layer in model.children()

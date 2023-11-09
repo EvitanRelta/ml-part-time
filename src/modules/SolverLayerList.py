@@ -5,7 +5,7 @@ from torch import Tensor, nn
 from src.preprocessing.solver_inputs import SolverInputs
 
 from ..preprocessing import preprocessing_utils
-from ..preprocessing.transpose import UnaryForwardModule, transpose_model
+from ..preprocessing.transpose import UnaryForward, transpose_model
 from .solver_layers.base_class import SolverLayer
 from .solver_layers.SolverInput import SolverInput
 from .solver_layers.SolverIntermediate import SolverIntermediate
@@ -48,7 +48,7 @@ class SolverLayerList(nn.ModuleList):
     @staticmethod
     def _split_vars_per_layer(
         inputs: SolverInputs,
-        transposed_layers: List[UnaryForwardModule],
+        transposed_layers: List[UnaryForward],
         b_list: List[Tensor],
         stably_act_masks: List[Tensor],
         stably_deact_masks: List[Tensor],
