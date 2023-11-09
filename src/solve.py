@@ -57,8 +57,8 @@ def solve(
         new_U_list.append(new_U)
 
     # Add last initial bounds.
-    new_L_list.append(solver.vars.L_list[-1])
-    new_U_list.append(solver.vars.U_list[-1])
+    new_L_list.append(solver.layers[-1].L)
+    new_U_list.append(solver.layers[-1].U)
 
     # Convert tensors to numpy arrays.
     numpy_L_list: List[ndarray] = [x.cpu().numpy() for x in new_L_list]

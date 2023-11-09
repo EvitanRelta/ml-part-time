@@ -98,7 +98,7 @@ def is_falsified_by_concrete_inputs(solver: Solver, theta_list: List[Tensor]) ->
     via the adversarial-check model (ie. training should be stopped).
     """
     thetas = torch.cat(theta_list, dim=0)
-    L_0: Tensor = solver.vars.layer_vars[0].L.detach()
-    U_0: Tensor = solver.vars.layer_vars[0].U.detach()
+    L_0: Tensor = solver.layers[0].L.detach()
+    U_0: Tensor = solver.layers[0].U.detach()
     concrete_inputs: Tensor = torch.where(thetas >= 0, L_0, U_0)
     return solver.adv_check_model.forward(concrete_inputs)

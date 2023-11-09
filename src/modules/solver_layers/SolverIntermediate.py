@@ -6,22 +6,27 @@ from typing_extensions import override
 
 from ...preprocessing.transpose import UnaryForwardModule
 from ..solver_utils import bracket_minus, bracket_plus
-from .base_class import LayerVariables, SolverLayer
+from .base_class import SolverLayer
 
 
-class IntermediateLayerVariables(LayerVariables):
+class SolverIntermediate(SolverLayer):
+    @override
     def __init__(
         self,
+        L: Tensor,
+        U: Tensor,
+        stably_act_mask: Tensor,
+        stably_deact_mask: Tensor,
+        unstable_mask: Tensor,
+        C: Tensor,
         transposed_layer: UnaryForwardModule,
         b: Tensor,
         transposed_layer_next: UnaryForwardModule,
         P: Tensor,
         P_hat: Tensor,
         p: Tensor,
-        *args,
-        **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(L, U, stably_act_mask, stably_deact_mask, unstable_mask, C)
         self.transposed_layer = transposed_layer
         self.transposed_layer_next = transposed_layer_next
 
@@ -29,30 +34,26 @@ class IntermediateLayerVariables(LayerVariables):
         self.P: Tensor
         self.P_hat: Tensor
         self.p: Tensor
-
         self.register_buffer("b", b)
         self.register_buffer("P", P)
         self.register_buffer("P_hat", P_hat)
         self.register_buffer("p", p)
 
+        self.pi: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.P.size(0))))
+        self.alpha: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.num_unstable)))
+        self.V_hat: Optional[Tensor] = None
 
-class SolverIntermediate(SolverLayer):
     @override
-    def __init__(self, vars: IntermediateLayerVariables) -> None:
-        super().__init__(vars)
-        self.vars: IntermediateLayerVariables
-        self.pi: nn.Parameter = nn.Parameter(
-            torch.rand((self.vars.num_batches, self.vars.P.size(0)))
-        )
-        self.alpha: nn.Parameter = nn.Parameter(
-            torch.rand((self.vars.num_batches, self.vars.num_unstable))
-        )
+    def set_C_and_reset(self, C: Tensor) -> None:
+        super().set_C_and_reset(C)
+        self.pi: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.P.size(0))))
+        self.alpha: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.num_unstable)))
         self.V_hat: Optional[Tensor] = None
 
     @override
     def forward(self, V_next: Tensor) -> Tensor:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        transposed_layer_next, num_batches, num_neurons, num_unstable, P, P_hat, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.vars.transposed_layer_next, self.vars.num_batches, self.vars.num_neurons, self.vars.num_unstable, self.vars.P, self.vars.P_hat, self.vars.C, self.vars.stably_act_mask, self.vars.stably_deact_mask, self.vars.unstable_mask, self.pi, self.alpha, self.vars.U, self.vars.L  # fmt: skip
+        transposed_layer_next, num_batches, num_neurons, num_unstable, P, P_hat, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.transposed_layer_next, self.num_batches, self.num_neurons, self.num_unstable, self.P, self.P_hat, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
         device = V_next.device
 
         V: Tensor = torch.zeros((num_batches, num_neurons)).to(device)
@@ -88,10 +89,10 @@ class SolverIntermediate(SolverLayer):
     @override
     def get_obj_sum(self) -> Tensor:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        num_batches, L, U, unstable_mask, p, pi = self.vars.num_batches, self.vars.L, self.vars.U, self.vars.unstable_mask, self.vars.p, self.pi  # fmt: skip
+        num_batches, L, U, unstable_mask, p, pi = self.num_batches, self.L, self.U, self.unstable_mask, self.p, self.pi  # fmt: skip
         device = self.pi.device
 
-        if self.vars.num_unstable == 0:
+        if self.num_unstable == 0:
             return torch.zeros((num_batches,)).to(device)
 
         assert self.V_hat is not None
