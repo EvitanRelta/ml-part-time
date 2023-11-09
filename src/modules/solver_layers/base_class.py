@@ -44,13 +44,6 @@ class SolverLayer(ABC, nn.Module):
     def num_unstable(self) -> int:
         return int(self.unstable_mask.sum().item())
 
-    # fmt: off
     @abstractmethod
-    def forward(self, V_next: Tensor) -> Tensor: ...
-
-    @abstractmethod
-    def clamp_parameters(self) -> None: ...
-
-    @abstractmethod
-    def get_obj_sum(self) -> Tensor: ...
-    # fmt: on
+    def clamp_parameters(self) -> None:
+        ...
