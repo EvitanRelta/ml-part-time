@@ -12,14 +12,6 @@ from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import transpose_layer
 
-T = TypeVar("T")
-
-
-def get_reversed_iterator(list_or_iterator: Union[List[T], Iterator[T]]) -> Iterator[T]:
-    items = list_or_iterator if isinstance(list_or_iterator, list) else list(list_or_iterator)
-    items.reverse()
-    return iter(items)
-
 
 def build(inputs: SolverInputs) -> List[SolverLayer]:
     preprocessing_utils.freeze_model(inputs.model)
@@ -102,6 +94,15 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
 
     solver_layers.reverse()
     return solver_layers
+
+
+T = TypeVar("T")
+
+
+def get_reversed_iterator(list_or_iterator: Union[List[T], Iterator[T]]) -> Iterator[T]:
+    items = list_or_iterator if isinstance(list_or_iterator, list) else list(list_or_iterator)
+    items.reverse()
+    return iter(items)
 
 
 def build_intermediate_layer(
