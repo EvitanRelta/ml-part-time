@@ -1,8 +1,11 @@
 from torch import Tensor
 from typing_extensions import override
 
-from ...preprocessing.solver_variables import InputLayerVariables
-from .base_class import SolverLayer
+from .base_class import LayerVariables, SolverLayer
+
+
+class InputLayerVariables(LayerVariables):
+    ...
 
 
 class SolverInput(SolverLayer):

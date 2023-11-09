@@ -2,6 +2,10 @@ from typing import Iterator, List, Literal, overload
 
 from torch import Tensor, nn
 
+from ..modules.solver_layers.base_class import LayerVariables
+from ..modules.solver_layers.SolverInput import InputLayerVariables
+from ..modules.solver_layers.SolverIntermediate import IntermediateLayerVariables
+from ..modules.solver_layers.SolverOutput import OutputLayerVariables
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import UnaryForwardModule, transpose_model
@@ -142,114 +146,23 @@ class SolverVariables(nn.Module):
 class LayerVariablesList(nn.ModuleList):
     """Wrapper around `ModuleList` to contain `LayerVariables` modules."""
 
-    def __init__(self, layer_vars: List["LayerVariables"]) -> None:
+    def __init__(self, layer_vars: List[LayerVariables]) -> None:
         assert isinstance(layer_vars[0], InputLayerVariables)
         assert isinstance(layer_vars[-1], OutputLayerVariables)
         for i in range(1, len(layer_vars) - 1):
             assert isinstance(layer_vars[i], IntermediateLayerVariables)
         super().__init__(layer_vars)
 
-    def __iter__(self) -> Iterator["LayerVariables"]:
+    def __iter__(self) -> Iterator[LayerVariables]:
         return super().__iter__()  # type: ignore
 
     # fmt: off
     @overload
-    def __getitem__(self, i: Literal[0]) -> "InputLayerVariables": ...
+    def __getitem__(self, i: Literal[0]) -> InputLayerVariables: ...
     @overload
-    def __getitem__(self, i: Literal[-1]) -> "OutputLayerVariables": ...
+    def __getitem__(self, i: Literal[-1]) -> OutputLayerVariables: ...
     @overload
-    def __getitem__(self, i: int) -> "IntermediateLayerVariables": ...
+    def __getitem__(self, i: int) -> IntermediateLayerVariables: ...
     # fmt: on
-    def __getitem__(self, i: int) -> "LayerVariables":
+    def __getitem__(self, i: int) -> LayerVariables:
         return super().__getitem__(i)  # type: ignore
-
-
-class LayerVariables(nn.Module):
-    def __init__(
-        self,
-        L: Tensor,
-        U: Tensor,
-        stably_act_mask: Tensor,
-        stably_deact_mask: Tensor,
-        unstable_mask: Tensor,
-        C: Tensor,
-    ) -> None:
-        super().__init__()
-        self.L: Tensor
-        self.U: Tensor
-        self.stably_act_mask: Tensor
-        self.stably_deact_mask: Tensor
-        self.unstable_mask: Tensor
-        self.C: Tensor
-
-        self.register_buffer("L", L)
-        self.register_buffer("U", U)
-        self.register_buffer("stably_act_mask", stably_act_mask)
-        self.register_buffer("stably_deact_mask", stably_deact_mask)
-        self.register_buffer("unstable_mask", unstable_mask)
-        self.register_buffer("C", C)
-
-    def set_C(self, C: Tensor) -> None:
-        self.register_buffer("C", C)
-
-    @property
-    def num_batches(self) -> int:
-        return self.C.size(0)
-
-    @property
-    def num_neurons(self) -> int:
-        return len(self.L)
-
-    @property
-    def num_unstable(self) -> int:
-        return int(self.unstable_mask.sum().item())
-
-
-class InputLayerVariables(LayerVariables):
-    ...
-
-
-class IntermediateLayerVariables(LayerVariables):
-    def __init__(
-        self,
-        transposed_layer: UnaryForwardModule,
-        b: Tensor,
-        transposed_layer_next: UnaryForwardModule,
-        P: Tensor,
-        P_hat: Tensor,
-        p: Tensor,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.transposed_layer = transposed_layer
-        self.transposed_layer_next = transposed_layer_next
-
-        self.b: Tensor
-        self.P: Tensor
-        self.P_hat: Tensor
-        self.p: Tensor
-
-        self.register_buffer("b", b)
-        self.register_buffer("P", P)
-        self.register_buffer("P_hat", P_hat)
-        self.register_buffer("p", p)
-
-
-class OutputLayerVariables(LayerVariables):
-    def __init__(
-        self,
-        transposed_layer: UnaryForwardModule,
-        b: Tensor,
-        H: Tensor,
-        *args,
-        **kwargs,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.transposed_layer = transposed_layer
-
-        self.b: Tensor
-        self.H: Tensor
-
-        self.register_buffer("b", b)
-        self.register_buffer("H", H)

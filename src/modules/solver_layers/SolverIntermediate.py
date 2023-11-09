@@ -4,9 +4,36 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from ...preprocessing.solver_variables import IntermediateLayerVariables
+from ...preprocessing.transpose import UnaryForwardModule
 from ..solver_utils import bracket_minus, bracket_plus
-from .base_class import SolverLayer
+from .base_class import LayerVariables, SolverLayer
+
+
+class IntermediateLayerVariables(LayerVariables):
+    def __init__(
+        self,
+        transposed_layer: UnaryForwardModule,
+        b: Tensor,
+        transposed_layer_next: UnaryForwardModule,
+        P: Tensor,
+        P_hat: Tensor,
+        p: Tensor,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.transposed_layer = transposed_layer
+        self.transposed_layer_next = transposed_layer_next
+
+        self.b: Tensor
+        self.P: Tensor
+        self.P_hat: Tensor
+        self.p: Tensor
+
+        self.register_buffer("b", b)
+        self.register_buffer("P", P)
+        self.register_buffer("P_hat", P_hat)
+        self.register_buffer("p", p)
 
 
 class SolverIntermediate(SolverLayer):

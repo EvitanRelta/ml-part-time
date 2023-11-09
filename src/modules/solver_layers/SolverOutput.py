@@ -2,8 +2,27 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from ...preprocessing.solver_variables import OutputLayerVariables
-from .base_class import SolverLayer
+from ...preprocessing.transpose import UnaryForwardModule
+from .base_class import LayerVariables, SolverLayer
+
+
+class OutputLayerVariables(LayerVariables):
+    def __init__(
+        self,
+        transposed_layer: UnaryForwardModule,
+        b: Tensor,
+        H: Tensor,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.transposed_layer = transposed_layer
+
+        self.b: Tensor
+        self.H: Tensor
+
+        self.register_buffer("b", b)
+        self.register_buffer("H", H)
 
 
 class SolverOutput(SolverLayer):
