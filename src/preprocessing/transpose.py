@@ -15,7 +15,7 @@ def transpose_layer(layer: nn.Linear) -> Tuple[nn.Linear, Tensor]: ...
 @overload
 def transpose_layer(layer: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Tensor]: ...
 # fmt: on
-def transpose_layer(layer: nn.Module) -> Tuple[nn.Module, Tensor]:
+def transpose_layer(layer: nn.Module) -> Tuple[UnaryForward, Tensor]:
     """Convert `layer` to a transposed of itself without bias, and return it
     along with the original bias tensor.
 
