@@ -1,12 +1,9 @@
-from typing import Protocol, Tuple, overload
+from typing import Tuple, overload
 
 import torch
 from torch import Tensor, nn
 
-
-class UnaryForward(Protocol):
-    def forward(self, input: Tensor) -> Tensor:
-        ...
+from .class_definitions import UnaryForward
 
 
 # fmt: off
