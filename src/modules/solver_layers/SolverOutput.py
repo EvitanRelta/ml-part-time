@@ -4,6 +4,7 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
+from ...preprocessing.class_definitions import Bias
 from ...preprocessing.transpose import UnaryForward
 from .base_class import SolverLayer
 
@@ -19,17 +20,16 @@ class SolverOutput(SolverLayer):
         unstable_mask: Tensor,
         C: Tensor,
         transposed_layer: UnaryForward,
-        b: Tensor,
+        bias_module: Bias,
         H: Tensor,
         d: Tensor,
     ) -> None:
         super().__init__(L, U, stably_act_mask, stably_deact_mask, unstable_mask, C)
         self.transposed_layer = transposed_layer
+        self.bias_module = bias_module
 
-        self.b: Tensor
         self.H: Tensor
         self.d: Tensor
-        self.register_buffer("b", b)
         self.register_buffer("H", H)
         self.register_buffer("d", d)
 
@@ -40,11 +40,11 @@ class SolverOutput(SolverLayer):
 
     def forward(self) -> Tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        H, d, gamma = self.H, self.d, self.gamma  # fmt: skip
+        bias_module, H, d, gamma = self.bias_module, self.H, self.d, self.gamma  # fmt: skip
 
         V = (-H.T @ gamma.T).T
         assert V.dim() == 2
-        return V, gamma @ d - V @ self.b
+        return V, gamma @ d - bias_module.forward(V)
 
     @override
     def clamp_parameters(self) -> None:

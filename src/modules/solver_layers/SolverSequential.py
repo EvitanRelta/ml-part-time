@@ -63,10 +63,6 @@ class SolverSequential(nn.ModuleList):
         return self[-1].H
 
     @property
-    def b_list(self) -> List[Tensor]:
-        return [self[i].b for i in range(1, len(self))]
-
-    @property
     def stably_act_masks(self) -> List[Tensor]:
         return [x.stably_act_mask for x in self]
 

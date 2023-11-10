@@ -37,7 +37,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
 
     last_layer = next(layer_gen)
     assert isinstance(last_layer, nn.Linear)
-    transposed_layer, b = transpose_layer(last_layer)
+    transposed_layer, bias_module = transpose_layer(last_layer)
 
     output_layer = SolverOutput(
         L=next(L_gen),
@@ -47,7 +47,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
         unstable_mask=next(unstable_mask_gen),
         C=next(C_gen),
         transposed_layer=transposed_layer,
-        b=b,
+        bias_module=bias_module,
         H=inputs.H,
         d=inputs.d,
     )
@@ -122,7 +122,7 @@ def build_intermediate_layer(
     while not isinstance(layer, nn.Linear):
         layer = next(layer_gen)
 
-    transposed_layer, b = transpose_layer(layer)
+    transposed_layer, bias_module = transpose_layer(layer)
     return SolverIntermediate(
         L=next(L_gen),
         U=next(U_gen),
@@ -131,7 +131,7 @@ def build_intermediate_layer(
         unstable_mask=next(unstable_mask_gen),
         C=next(C_gen),
         transposed_layer=transposed_layer,
-        b=b,
+        bias_module=bias_module,
         transposed_layer_next=prev_layer.transposed_layer,
         P=next(P_gen),
         P_hat=next(P_hat_gen),

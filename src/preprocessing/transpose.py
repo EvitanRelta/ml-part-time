@@ -1,23 +1,23 @@
 from typing import Tuple, overload
 
 import torch
-from torch import Tensor, nn
+from torch import nn
 
-from .class_definitions import UnaryForward
+from .class_definitions import Bias, Conv2dFlattenBias, LinearBias, UnaryForward
 
 
 # fmt: off
 @overload
-def transpose_layer(layer: nn.Linear) -> Tuple[nn.Linear, Tensor]: ...
+def transpose_layer(layer: nn.Linear) -> Tuple[nn.Linear, Bias]: ...
 @overload
-def transpose_layer(layer: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Tensor]: ...
+def transpose_layer(layer: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Bias]: ...
 # fmt: on
-def transpose_layer(layer: nn.Module) -> Tuple[UnaryForward, Tensor]:
+def transpose_layer(layer: nn.Module) -> Tuple[UnaryForward, Bias]:
     """Convert `layer` to a transposed of itself without bias, and return it
-    along with the original bias tensor.
+    along with a `Bias` module that performs the `V_i^T.b` operation.
 
     Returns:
-        The tranposed layer, and the original bias tensor.
+        The tranposed layer, and the corresponding `Bias` module.
     """
     if isinstance(layer, nn.Linear):
         return transpose_linear(layer)
@@ -26,17 +26,7 @@ def transpose_layer(layer: nn.Module) -> Tuple[UnaryForward, Tensor]:
     raise NotImplementedError()
 
 
-def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Tensor]:
-    """Convert `linear` to a transposed of itself without bias, and return it
-    along with the original bias tensor.
-
-    Args:
-        linear (nn.Linear): The linear layer to transpose.
-
-    Returns:
-        Tuple[nn.Linear, Tensor]: The tranposed linear layer, and the original \
-            bias tensor.
-    """
+def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Bias]:
     weight = linear.weight
     bias = linear.bias if linear.bias is not None else torch.zeros((weight.size(0),))
 
@@ -44,20 +34,10 @@ def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Tensor]:
     transposed_linear = nn.Linear(weight.size(1), weight.size(0), bias=False)
     transposed_linear.weight = nn.Parameter(weight.t().clone().detach(), requires_grad=False)
 
-    return transposed_linear, bias.clone().detach()
+    return transposed_linear, LinearBias(bias.clone().detach())
 
 
-def transpose_conv2d(conv2d: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Tensor]:
-    """Convert `conv2d` to a transposed of itself without bias, and return it
-    along with the original bias tensor.
-
-    Args:
-        conv2d (nn.Conv2d): The 2D CNN layer to transpose.
-
-    Returns:
-        Tuple[nn.ConvTranspose2d, Tensor]: The tranposed linear layer, and the \
-            original bias tensor.
-    """
+def transpose_conv2d(conv2d: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Bias]:
     weight = conv2d.weight
     bias = conv2d.bias if conv2d.bias is not None else torch.zeros((conv2d.out_channels,))
 
@@ -74,4 +54,4 @@ def transpose_conv2d(conv2d: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Tensor]:
     )
     transposed_conv2d.weight = nn.Parameter(weight.clone().detach(), requires_grad=False)
 
-    return transposed_conv2d, bias.clone().detach()
+    return transposed_conv2d, Conv2dFlattenBias(bias.clone().detach())
