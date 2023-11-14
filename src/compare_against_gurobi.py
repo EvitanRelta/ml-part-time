@@ -76,18 +76,28 @@ def compare_against_gurobi(
     plot_box_and_whiskers(
         [diff_L, diff_U, diff_new_L, diff_new_U],
         ["initial L", "initial U", "new L", "new U"],
+        title="Difference between computed bounds vs Gurobi's"
+        + f"\n(excluding neurons whr initial-vs-Gurobi diff values <= {cutoff_threshold})",
+        xlabel="Differences",
+        ylabel="Bounds",
     )
 
 
-def plot_box_and_whiskers(values: list[list[Tensor]], labels: list[str]) -> None:
+def plot_box_and_whiskers(
+    values: list[list[Tensor]],
+    labels: list[str],
+    title: str,
+    xlabel: str,
+    ylabel: str,
+) -> None:
     concat_values: list[np.ndarray] = [torch.cat(x).numpy() for x in values]
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.boxplot(concat_values, vert=False, labels=labels)
 
-    ax.set_title("Horizontal Box Plots for diff between compute & gurobi bounds")
-    ax.set_xlabel("Differences")
-    ax.set_ylabel("Bounds")
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     plt.tight_layout()
     plt.show()
