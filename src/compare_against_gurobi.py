@@ -15,6 +15,20 @@ def compare_against_gurobi(
     gurobi_results: GurobiResults,
     cutoff_threshold: float | None = None,
 ) -> None:
+    # Ensure all tensors are on same device.
+    device = torch.device("cpu")
+    new_L = [L_i.to(device) for L_i in new_L]
+    new_U = [U_i.to(device) for U_i in new_U]
+    unstable_masks = [mask.to(device) for mask in unstable_masks]
+    initial_L = [L_i.to(device) for L_i in initial_L]
+    initial_U = [U_i.to(device) for U_i in initial_U]
+    gurobi_results["L_unstable_only"] = [
+        L_i.to(device) for L_i in gurobi_results["L_unstable_only"]
+    ]
+    gurobi_results["U_unstable_only"] = [
+        U_i.to(device) for U_i in gurobi_results["U_unstable_only"]
+    ]
+
     # Only consider input + unstable intermediates neurons.
     masks = unstable_masks[1:-1]
     unstable_L = [initial_L[0]] + [L_i[mask] for (L_i, mask) in zip(initial_L[1:-1], masks)]
