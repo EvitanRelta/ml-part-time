@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from typing import Iterator, List, TypeVar, Union
+from typing import Iterator, List, Tuple, TypeVar, Union
 
 import pytest
 from torch import Tensor, nn
@@ -37,7 +37,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
 
     last_layer = next(layer_gen)
     assert isinstance(last_layer, nn.Linear)
-    transposed_layer, bias_module = transpose_layer(last_layer)
+    transposed_layer, bias_module, out_feat = transpose_layer(last_layer, last_layer.out_features)
 
     output_layer = SolverOutput(
         L=next(L_gen),
@@ -54,10 +54,11 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
     solver_layers: List[SolverLayer] = [output_layer]
 
     prev_layer: Union[SolverOutput, SolverIntermediate] = output_layer
+    prev_out_feat: int = out_feat
 
     while True:
         try:
-            intermediate_layer = build_intermediate_layer(
+            prev_layer, prev_out_feat = build_intermediate_layer(
                 layer_gen=layer_gen,
                 L_gen=L_gen,
                 U_gen=U_gen,
@@ -69,9 +70,9 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
                 unstable_mask_gen=unstable_mask_gen,
                 C_gen=C_gen,
                 prev_layer=prev_layer,
+                prev_out_feat=prev_out_feat,
             )
-            solver_layers.append(intermediate_layer)
-            prev_layer = intermediate_layer
+            solver_layers.append(prev_layer)
         except StopIteration:
             break
 
@@ -117,23 +118,27 @@ def build_intermediate_layer(
     unstable_mask_gen: Iterator[Tensor],
     C_gen: Iterator[Tensor],
     prev_layer: Union[SolverIntermediate, SolverOutput],
-) -> SolverIntermediate:
+    prev_out_feat: int,
+) -> Tuple[SolverIntermediate, int]:
     layer = next(layer_gen)
-    while not isinstance(layer, nn.Linear):
+    while not isinstance(layer, nn.Linear) and not isinstance(layer, nn.Conv2d):
         layer = next(layer_gen)
 
-    transposed_layer, bias_module = transpose_layer(layer)
-    return SolverIntermediate(
-        L=next(L_gen),
-        U=next(U_gen),
-        stably_act_mask=next(stably_act_mask_gen),
-        stably_deact_mask=next(stably_deact_mask_gen),
-        unstable_mask=next(unstable_mask_gen),
-        C=next(C_gen),
-        transposed_layer=transposed_layer,
-        bias_module=bias_module,
-        transposed_layer_next=prev_layer.transposed_layer,
-        P=next(P_gen),
-        P_hat=next(P_hat_gen),
-        p=next(p_gen),
+    transposed_layer, bias_module, out_feat = transpose_layer(layer, prev_out_feat)
+    return (
+        SolverIntermediate(
+            L=next(L_gen),
+            U=next(U_gen),
+            stably_act_mask=next(stably_act_mask_gen),
+            stably_deact_mask=next(stably_deact_mask_gen),
+            unstable_mask=next(unstable_mask_gen),
+            C=next(C_gen),
+            transposed_layer=transposed_layer,
+            bias_module=bias_module,
+            transposed_layer_next=prev_layer.transposed_layer,
+            P=next(P_gen),
+            P_hat=next(P_hat_gen),
+            p=next(p_gen),
+        ),
+        out_feat,
     )
