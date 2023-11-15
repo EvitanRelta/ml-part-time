@@ -37,7 +37,7 @@ python train_toy.py
 
 ## Solving MNIST 256x6 & comparing against Gurobi's
 
-Run the script at `src/train_mnist_256x6.py` via:
+Run the script at `train_mnist_256x6.py` via:
 
 ```bash
 # In the repo's root:
