@@ -1,10 +1,10 @@
 # Setup
 
-- Install Python >=3.10. \
+- Install Python >=3.8. \
   If you're using Anaconda, create a new environment via:
 
   ```bash
-  conda create -n your_env python=3.10
+  conda create -n your_env python=3.8
   conda activate your_env
   ```
 
@@ -74,18 +74,19 @@ absolute_model_path = get_abs_path("./path/to/model.onnx")
 model: nn.Module = load_onnx_model(absolute_model_path)
 
 
+from typing import List
 from torch import Tensor
 from src.preprocessing.solver_inputs import SolverInputs
 
 # Other solver inputs.
 ground_truth_neuron_index: int
-L: list[Tensor]
-U: list[Tensor]
+L: List[Tensor]
+U: List[Tensor]
 H: Tensor
 d: Tensor
-P: list[Tensor]
-P_hat: list[Tensor]
-p: list[Tensor]
+P: List[Tensor]
+P_hat: List[Tensor]
+p: List[Tensor]
 
 solver_inputs = SolverInputs(
     model=model,
@@ -120,14 +121,15 @@ is_falsified, new_lower_bounds, new_upper_bounds = \
 #====================================================================
 #                    Comparing results to Gurobi's
 #====================================================================
+from typing import List
 from torch import Tensor
 from src.compare_against_gurobi import compare_against_gurobi
 from src.inputs.save_file_types import GurobiResults
 
-initial_L: list[Tensor] = L
-initial_U: list[Tensor] = U
-gurobi_lower_bounds_unstable_only: list[Tensor]
-gurobi_upper_bounds_unstable_only: list[Tensor]
+initial_L: List[Tensor] = L
+initial_U: List[Tensor] = U
+gurobi_lower_bounds_unstable_only: List[Tensor]
+gurobi_upper_bounds_unstable_only: List[Tensor]
 gurobi_compute_time: float
 
 gurobi_results: GurobiResults = {
