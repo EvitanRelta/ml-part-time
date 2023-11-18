@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import torch
 from torch import Tensor, nn
@@ -12,21 +13,21 @@ get_abs_path = set_abs_path_to(CURRENT_DIR)
 
 model: nn.Module = load_onnx_model(get_abs_path("toy_example.onnx"))
 
-L: list[Tensor] = [
+L: List[Tensor] = [
     torch.tensor([-1, -1]).float(),
     torch.tensor([0.8, -2, -2]).float(),
     torch.tensor([0.8, 0, 0]).float(),
 ]
-"""Lower limits for neurons. Each list corresponds to the lower limits for a
+"""Lower limits for neurons. Each List corresponds to the lower limits for a
 network layer (ie. index-0 is the lower limits for each neuron in layer-0, the
 input layer)."""
 
-U: list[Tensor] = [
+U: List[Tensor] = [
     torch.tensor([1, 1]).float(),
     torch.tensor([4.8, 2, 2]).float(),
     torch.tensor([4.8, 2, 2]).float(),
 ]
-"""Upper limits for neurons. Each list corresponds to the upper limits for a
+"""Upper limits for neurons. Each List corresponds to the upper limits for a
 network layer (ie. index-0 is the upper limits for each neuron in layer-0, the
 input layer)."""
 
@@ -52,7 +53,7 @@ d: Tensor = torch.tensor([0, 0, 0, 1, -2, -2, -2]).float()
 # constraint Pxi + P_hatxi_hat - p <= 0, w.r.t intermediate unstable neurons and their respective inputs
 # -x7 <= 0, -x8 <= 0, -0.5x4 +x7 -1 <= 0, -0.5x5+x8 -1 <= 0, 2x4+x5-x7-x8 <= 0, -x7-x8-2 <= 0
 # xi is [x4, x5], xi_hat is [x7, x8]
-P: list[Tensor] = [
+P: List[Tensor] = [
     torch.tensor(
         [
             [0, 0],
@@ -67,7 +68,7 @@ P: list[Tensor] = [
 """`P` matrix in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
-P_hat: list[Tensor] = [
+P_hat: List[Tensor] = [
     torch.tensor(
         [
             [-1, 0],
@@ -83,7 +84,7 @@ P_hat: list[Tensor] = [
 """`P_hat` matrix in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
-p: list[Tensor] = [
+p: List[Tensor] = [
     torch.tensor([0, 0, 1, 1, 0, 2]).float(),
 ]
 """`p` vector in the constraint `Pxi + P_hatxi_hat - p <= 0`, w.r.t

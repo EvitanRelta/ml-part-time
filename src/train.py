@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 from torch import Tensor
 from torch.optim import Adam
@@ -80,7 +82,7 @@ def train(
     )
     early_stop_handler = EarlyStopHandler(stop_patience, stop_threshold)
 
-    theta_list: list[Tensor] = []
+    theta_list: List[Tensor] = []
 
     epoch = 1
     pbar = tqdm(desc="Training", total=None, unit=" epoch", initial=epoch)
@@ -131,7 +133,7 @@ def train(
     return False
 
 
-def is_falsified_by_concrete_inputs(solver: Solver, theta_list: list[Tensor]) -> bool:
+def is_falsified_by_concrete_inputs(solver: Solver, theta_list: List[Tensor]) -> bool:
     """Whether concrete inputs generated from `theta_list` falsifies the problem
     via the adversarial-check model (ie. training should be stopped).
     """

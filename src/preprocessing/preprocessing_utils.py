@@ -1,7 +1,8 @@
-from typing import TypeAlias
+from typing import List, Tuple
 
 import torch
 from torch import Tensor, nn
+from typing_extensions import TypeAlias
 
 
 def freeze_model(model: nn.Module) -> None:
@@ -9,38 +10,38 @@ def freeze_model(model: nn.Module) -> None:
         param.requires_grad = False
 
 
-def get_masks(L: list[Tensor], U: list[Tensor]) -> tuple[list[Tensor], list[Tensor], list[Tensor]]:
+def get_masks(L: List[Tensor], U: List[Tensor]) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
     """Returns masks for stably-activated, stably-deactivated and
     unstable neurons in that order.
     """
     num_layers = len(U)
-    stably_act_masks: list[Tensor] = [L_i >= 0 for L_i in L]
-    stably_deact_masks: list[Tensor] = [U_i <= 0 for U_i in U]
-    unstable_masks: list[Tensor] = [(L[i] < 0) & (U[i] > 0) for i in range(num_layers)]
+    stably_act_masks: List[Tensor] = [L_i >= 0 for L_i in L]
+    stably_deact_masks: List[Tensor] = [U_i <= 0 for U_i in U]
+    unstable_masks: List[Tensor] = [(L[i] < 0) & (U[i] > 0) for i in range(num_layers)]
     for i in range(num_layers):
         assert torch.all((stably_act_masks[i] + stably_deact_masks[i] + unstable_masks[i]) == 1)
 
     return stably_act_masks, stably_deact_masks, unstable_masks
 
 
-def decompose_model(model: nn.Module) -> tuple[list[Tensor], list[Tensor]]:
+def decompose_model(model: nn.Module) -> Tuple[List[Tensor], List[Tensor]]:
     """Returns the number of linear-layers, linear-layer weights and biases in
     that order.
     """
     linear_layers = [layer for layer in model.children() if isinstance(layer, nn.Linear)]
 
-    W: list[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
-    b: list[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
+    W: List[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
+    b: List[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
     return W, b
 
 
-NeuronCoords: TypeAlias = tuple[int, int]
+NeuronCoords: TypeAlias = Tuple[int, int]
 """Coordinates for a neuron in the model, in the form `(layer_index, neuron_index)`."""
 
 
 def get_C_for_layer(
-    layer_index: int, unstable_masks: list[Tensor]
-) -> tuple[list[Tensor], list[NeuronCoords]]:
+    layer_index: int, unstable_masks: List[Tensor]
+) -> Tuple[List[Tensor], List[NeuronCoords]]:
     """Get the `C` to solve for the unstable neurons in layer `layer_index`,
     where `layer_index` can be any layer except the last (as we don't solve for
     output layer).
@@ -52,8 +53,8 @@ def get_C_for_layer(
     num_layers = len(unstable_masks)
     assert layer_index < num_layers - 1
 
-    C: list[Tensor] = []
-    coords: list[NeuronCoords] = []
+    C: List[Tensor] = []
+    coords: List[NeuronCoords] = []
 
     # For input layer, solve for all input neurons.
     if layer_index == 0:

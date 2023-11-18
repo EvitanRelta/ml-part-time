@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, Literal, overload
+from typing import Iterator, List, Literal, Optional, overload
 
 import torch
 from torch import Tensor, nn
@@ -19,7 +19,7 @@ class SolverLayerList(nn.ModuleList):
     """Wrapper around `ModuleList` to contain `SolverLayer` modules."""
 
     def __init__(self, vars: SolverVariables):
-        layers: list[SolverLayer] = [SolverInputLayer(vars.layer_vars[0])]
+        layers: List[SolverLayer] = [SolverInputLayer(vars.layer_vars[0])]
         for i in range(1, len(vars.layer_vars) - 1):
             layers.append(SolverIntermediateLayer(vars.layer_vars[i]))
         layers.append(SolverOutputLayer(vars.layer_vars[-1]))
@@ -88,7 +88,7 @@ class SolverIntermediateLayer(SolverLayer):
         self.alpha_i: nn.Parameter = nn.Parameter(
             torch.rand((self.vars.num_batches, self.vars.num_unstable))
         )
-        self.V_hat_i: Tensor | None = None
+        self.V_hat_i: Optional[Tensor] = None
 
     @override
     def forward(self, V_next: Tensor) -> Tensor:

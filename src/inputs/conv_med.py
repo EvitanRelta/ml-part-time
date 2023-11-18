@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import torch
 from torch import nn
@@ -20,7 +21,7 @@ model: nn.Module = load_onnx_model(get_abs_path("conv_med.onnx"))
 model_wo_norm = nn.Sequential(*list(model.children())[4:])
 
 # Linearize the model (w/o normalization/flatten layers).
-temp: list[nn.Module] = []
+temp: List[nn.Module] = []
 input_shape = (3, 32, 32)
 for layer in model.children():
     if isinstance(layer, nn.Linear) or isinstance(layer, nn.ReLU):

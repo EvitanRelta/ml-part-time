@@ -1,4 +1,4 @@
-from typing import Literal, overload
+from typing import List, Literal, Tuple, Union, overload
 
 import torch
 from torch import Tensor
@@ -10,13 +10,13 @@ from .train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[True], list[Tensor], list[Tensor]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[Tensor], List[Tensor]]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[True], list[Tensor], list[Tensor], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[Tensor], List[Tensor], Solver]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> tuple[Literal[False], None, None, Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
 def solve(
     solver_inputs: SolverInputs,
@@ -24,10 +24,10 @@ def solve(
     device: torch.device = torch.device("cpu"),
     num_epoch_adv_check: int = 10,
     run_adv_check: bool = True,
-) -> (
-    tuple[bool, list[Tensor] | None, list[Tensor] | None]
-    | tuple[bool, list[Tensor] | None, list[Tensor] | None, Solver]
-):
+) -> Union[
+    Tuple[bool, Union[List[Tensor], None], Union[List[Tensor], None]],
+    Tuple[bool, Union[List[Tensor], None], Union[List[Tensor], None], Solver],
+]:
     """
     Args:
         solver_inputs (SolverInputs): Dataclass containing all the inputs needed to start solving.
@@ -45,8 +45,8 @@ def solve(
     """
     solver = Solver(solver_inputs).to(device)
 
-    new_L: list[Tensor] = []
-    new_U: list[Tensor] = []
+    new_L: List[Tensor] = []
+    new_U: List[Tensor] = []
     for layer_index in range(len(solver.layers) - 1):  # Don't solve for last layer
         solver.reset_and_solve_for_layer(layer_index)
         is_falsified = train(

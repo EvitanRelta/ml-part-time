@@ -1,20 +1,20 @@
-from typing import TypedDict
+from typing import List, TypedDict
 
 from torch import Tensor
 
 
 class GurobiResults(TypedDict):
-    L_unstable_only: list[Tensor]
-    U_unstable_only: list[Tensor]
+    L_unstable_only: List[Tensor]
+    U_unstable_only: List[Tensor]
     compute_time: float
 
 
 class SolverInputsSavedDict(TypedDict):
-    L: list[Tensor]
-    U: list[Tensor]
+    L: List[Tensor]
+    U: List[Tensor]
     H: Tensor
     d: Tensor
-    P: list[Tensor]
-    P_hat: list[Tensor]
-    p: list[Tensor]
+    P: List[Tensor]
+    P_hat: List[Tensor]
+    p: List[Tensor]
     ground_truth_neuron_index: int

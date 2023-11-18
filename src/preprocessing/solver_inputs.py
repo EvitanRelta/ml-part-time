@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 import torch
 from torch import Tensor, nn
@@ -10,13 +11,13 @@ class SolverInputs:
 
     model: nn.Module
     ground_truth_neuron_index: int
-    L: list[Tensor]
-    U: list[Tensor]
+    L: List[Tensor]
+    U: List[Tensor]
     H: Tensor
     d: Tensor
-    P: list[Tensor]
-    P_hat: list[Tensor]
-    p: list[Tensor]
+    P: List[Tensor]
+    P_hat: List[Tensor]
+    p: List[Tensor]
     skip_validation: bool = False
 
     def __post_init__(self) -> None:
@@ -30,13 +31,13 @@ class SolverInputs:
     def _validate_types(self) -> None:
         assert isinstance(self.model, nn.Module)
         assert isinstance(self.ground_truth_neuron_index, int)
-        assert isinstance(self.L, list) and isinstance(self.L[0], Tensor)
-        assert isinstance(self.U, list) and isinstance(self.U[0], Tensor)
+        assert isinstance(self.L, List) and isinstance(self.L[0], Tensor)
+        assert isinstance(self.U, List) and isinstance(self.U[0], Tensor)
         assert isinstance(self.H, Tensor)
         assert isinstance(self.d, Tensor)
-        assert isinstance(self.P, list) and isinstance(self.P[0], Tensor)
-        assert isinstance(self.P_hat, list) and isinstance(self.P_hat[0], Tensor)
-        assert isinstance(self.p, list) and isinstance(self.p[0], Tensor)
+        assert isinstance(self.P, List) and isinstance(self.P[0], Tensor)
+        assert isinstance(self.P_hat, List) and isinstance(self.P_hat[0], Tensor)
+        assert isinstance(self.p, List) and isinstance(self.p[0], Tensor)
 
     def _validate_tensor_dtype(self) -> None:
         EXPECT_DTYPE = torch.float
@@ -67,7 +68,7 @@ class SolverInputs:
     def _validate_tensors_match_model(self) -> None:
         linear_layers = [layer for layer in self.model.children() if isinstance(layer, nn.Linear)]
         num_layers = len(linear_layers) + 1  # +1 to include input layer.
-        num_neurons_per_layer: list[int] = [linear_layers[0].weight.size(1)] + [
+        num_neurons_per_layer: List[int] = [linear_layers[0].weight.size(1)] + [
             linear.weight.size(0) for linear in linear_layers
         ]
         assert self.ground_truth_neuron_index < num_neurons_per_layer[-1]
@@ -76,7 +77,7 @@ class SolverInputs:
             assert self.L[i].size(0) == self.U[i].size(0) == num_neurons_per_layer[i]
 
         unstable_masks = [(self.L[i] < 0) & (self.U[i] > 0) for i in range(num_layers)]
-        num_unstable_per_layer: list[int] = [int(mask.sum().item()) for mask in unstable_masks]
+        num_unstable_per_layer: List[int] = [int(mask.sum().item()) for mask in unstable_masks]
         num_unstable_per_intermediate_layer = num_unstable_per_layer[1:-1]
         num_intermediate_layers = num_layers - 2
         assert len(self.P) == len(self.P_hat) == len(self.p) == num_intermediate_layers

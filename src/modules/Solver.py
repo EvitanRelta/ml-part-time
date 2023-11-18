@@ -1,4 +1,4 @@
-from typing import cast
+from typing import List, Tuple, cast
 
 import torch
 import torch.nn.functional as F
@@ -27,13 +27,13 @@ class Solver(nn.Module):
             for layer in self.layers:
                 layer.clamp_parameters()
 
-    def forward(self) -> tuple[Tensor, Tensor]:
+    def forward(self) -> Tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
         layers = self.layers  # fmt: skip
 
         l = len(layers) - 1
-        V: list[Tensor] = cast(list[Tensor], [None] * len(layers))
-        self.V: list[Tensor] = V
+        V: List[Tensor] = cast(List[Tensor], [None] * len(layers))
+        self.V: List[Tensor] = V
         V[l] = layers[-1].forward()
 
         for i in range(l - 1, 0, -1):  # From l-1 to 1 (inclusive)
@@ -42,7 +42,7 @@ class Solver(nn.Module):
         max_objective, theta = self.compute_max_objective(V)
         return max_objective, theta
 
-    def compute_max_objective(self, V: list[Tensor]) -> tuple[Tensor, Tensor]:
+    def compute_max_objective(self, V: List[Tensor]) -> Tuple[Tensor, Tensor]:
         layers, d = self.layers, self.vars.d
 
         l = len(layers) - 1
@@ -57,7 +57,7 @@ class Solver(nn.Module):
         self.last_max_objective = max_objective.detach()
         return max_objective, theta.detach()
 
-    def get_updated_bounds(self, layer_index: int) -> tuple[Tensor, Tensor]:
+    def get_updated_bounds(self, layer_index: int) -> Tuple[Tensor, Tensor]:
         """Returns `(new_lower_bounds, new_upper_bounds)` for layer `layer_index`."""
         assert self.vars.solve_coords[0][0] == layer_index
 

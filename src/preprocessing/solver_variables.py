@@ -1,4 +1,4 @@
-from typing import Iterator, Literal, overload
+from typing import Iterator, List, Literal, overload
 
 from torch import Tensor, nn
 
@@ -35,11 +35,11 @@ class SolverVariables(nn.Module):
             self.layer_vars[i].set_C_i(C[i])
 
     @property
-    def L(self) -> list[Tensor]:
+    def L(self) -> List[Tensor]:
         return [x.L_i for x in self.layer_vars]
 
     @property
-    def U(self) -> list[Tensor]:
+    def U(self) -> List[Tensor]:
         return [x.U_i for x in self.layer_vars]
 
     @property
@@ -47,40 +47,40 @@ class SolverVariables(nn.Module):
         return self.layer_vars[-1].H
 
     @property
-    def W(self) -> list[Tensor]:
+    def W(self) -> List[Tensor]:
         return [self.layer_vars[i].W_i for i in range(1, len(self.layer_vars))]
 
     @property
-    def b(self) -> list[Tensor]:
+    def b(self) -> List[Tensor]:
         return [self.layer_vars[i].b_i for i in range(1, len(self.layer_vars))]
 
     @property
-    def stably_act_masks(self) -> list[Tensor]:
+    def stably_act_masks(self) -> List[Tensor]:
         return [x.stably_act_mask for x in self.layer_vars]
 
     @property
-    def stably_deact_masks(self) -> list[Tensor]:
+    def stably_deact_masks(self) -> List[Tensor]:
         return [x.stably_deact_mask for x in self.layer_vars]
 
     @property
-    def unstable_masks(self) -> list[Tensor]:
+    def unstable_masks(self) -> List[Tensor]:
         return [x.unstable_mask for x in self.layer_vars]
 
     @property
-    def C(self) -> list[Tensor]:
+    def C(self) -> List[Tensor]:
         return [x.C_i for x in self.layer_vars]
 
     @staticmethod
     def _split_vars_per_layer(
         inputs: SolverInputs,
-        W: list[Tensor],
-        b: list[Tensor],
-        stably_act_masks: list[Tensor],
-        stably_deact_masks: list[Tensor],
-        unstable_masks: list[Tensor],
-        C: list[Tensor],
+        W: List[Tensor],
+        b: List[Tensor],
+        stably_act_masks: List[Tensor],
+        stably_deact_masks: List[Tensor],
+        unstable_masks: List[Tensor],
+        C: List[Tensor],
     ) -> "LayerVariablesList":
-        layer_var_list: list[LayerVariables] = []
+        layer_var_list: List[LayerVariables] = []
 
         # First-layer inputs.
         layer_var_list.append(
@@ -137,7 +137,7 @@ class SolverVariables(nn.Module):
 class LayerVariablesList(nn.ModuleList):
     """Wrapper around `ModuleList` to contain `LayerVariables` modules."""
 
-    def __init__(self, layer_vars: list["LayerVariables"]) -> None:
+    def __init__(self, layer_vars: List["LayerVariables"]) -> None:
         assert isinstance(layer_vars[0], InputLayerVariables)
         assert isinstance(layer_vars[-1], OutputLayerVariables)
         for i in range(1, len(layer_vars) - 1):

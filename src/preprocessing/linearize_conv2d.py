@@ -1,20 +1,22 @@
+from typing import Tuple, Union
+
 import torch
 from torch import Tensor, nn
 
 
 def conv2d_to_matrices(
     conv2d: nn.Conv2d,
-    input_shape: tuple[int, int, int] | torch.Size,
-) -> tuple[Tensor, Tensor]:
+    input_shape: Union[Tuple[int, int, int], torch.Size],
+) -> Tuple[Tensor, Tensor]:
     """Convert a Pytorch `Conv2d` layer to a linearized weights tensor `W` and a bias tensor `b`.
 
     Args:
         conv2d (nn.Conv2d): The 2D CNN layer.
-        input_shape (tuple[int, int, int] | torch.Size): Shape of the input tensor in the form: \
+        input_shape (Union[Tuple[int, int, int], torch.Size]): Shape of the input tensor in the form: \
             `(num_channels, height, width)`.
 
     Returns:
-        tuple[Tensor, Tensor]: The linearized weights & biases tensors: `(W, b)`.
+        Tuple[Tensor, Tensor]: The linearized weights & biases tensors: `(W, b)`.
     """
     # Extract weights and biases
     weights = conv2d.weight.data
@@ -29,7 +31,7 @@ def conv2d_to_matrices(
         conv2d.padding,
         conv2d.dilation,
     )
-    assert isinstance(padding, tuple)
+    assert isinstance(padding, Tuple)
 
     # Calculate output dimensions
     H_out = (H_in + 2 * padding[0] - dilation[0] * (kernel_h - 1) - 1) // stride[0] + 1
@@ -62,13 +64,13 @@ def conv2d_to_matrices(
 
 def linearize_conv2d(
     conv2d: nn.Conv2d,
-    input_shape: tuple[int, int, int] | torch.Size,
+    input_shape: Union[Tuple[int, int, int], torch.Size],
 ) -> nn.Linear:
     """Convert a Pytorch `Conv2d` layer to a sparse `Linear` layer.
 
     Args:
         conv2d (nn.Conv2d): The 2D CNN layer.
-        input_shape (tuple[int, int, int] | torch.Size): Shape of the input tensor in the form: \
+        input_shape (Union[Tuple[int, int, int], torch.Size]): Shape of the input tensor in the form: \
             `(num_channels, height, width)`.
 
     Returns:
@@ -96,24 +98,24 @@ def linearize_conv2d(
 
 def compute_conv2d_output_shape(
     conv2d: nn.Conv2d,
-    input_shape: tuple[int, int, int],
-) -> tuple[int, int, int]:
+    input_shape: Tuple[int, int, int],
+) -> Tuple[int, int, int]:
     """Calculate the output shape of a Conv2d layer given its configuration and input shape.
 
     Args:
         conv2d (nn.Conv2d): The 2D CNN layer.
-        input_shape (tuple[int, int, int]): Shape of the input tensor in the form: \
+        input_shape (Tuple[int, int, int]): Shape of the input tensor in the form: \
             `(num_channels, height, width)`.
 
     Returns:
-        tuple[int, int, int]: Output tensor shape in the form: \
+        Tuple[int, int, int]: Output tensor shape in the form: \
             `(num_channels, height, width)`.
     """
     # Extract parameters from the conv2d layer
     kernel_size = conv2d.kernel_size
     stride = conv2d.stride
     padding = conv2d.padding
-    assert isinstance(padding, tuple)
+    assert isinstance(padding, Tuple)
 
     # Extract input dimensions (ignoring the batch size and channel)
     *_, input_height, input_width = input_shape
