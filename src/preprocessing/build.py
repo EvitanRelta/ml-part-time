@@ -101,7 +101,7 @@ T = TypeVar("T")
 
 
 def get_reversed_iterator(list_or_iterator: Union[List[T], Iterator[T]]) -> Iterator[T]:
-    items = list_or_iterator if isinstance(list_or_iterator, list) else list(list_or_iterator)
+    items = list(list_or_iterator)
     items.reverse()
     return iter(items)
 
