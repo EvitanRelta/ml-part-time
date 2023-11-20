@@ -39,14 +39,13 @@ class SolverIntermediate(SolverLayer):
         self.register_buffer("P_hat", P_hat)
         self.register_buffer("p", p)
 
-        self.pi: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.P.size(0))))
-        self.alpha: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.num_unstable)))
-
     @override
     def set_C_and_reset(self, C: Tensor) -> None:
         super().set_C_and_reset(C)
-        self.pi: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.P.size(0))))
-        self.alpha: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.num_unstable)))
+        self.pi: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.P.size(0))).to(C))
+        self.alpha: nn.Parameter = nn.Parameter(
+            torch.rand((self.num_batches, self.num_unstable)).to(C)
+        )
 
     def forward(self, V_next: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.

@@ -36,7 +36,9 @@ class SolverOutput(SolverLayer):
     @override
     def set_C_and_reset(self, C: Tensor) -> None:
         super().set_C_and_reset(C)
-        self.gamma: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.H.size(0))))
+        self.gamma: nn.Parameter = nn.Parameter(
+            torch.rand((self.num_batches, self.H.size(0))).to(C)
+        )
 
     def forward(self) -> Tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
