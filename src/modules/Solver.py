@@ -32,26 +32,26 @@ class Solver(nn.Module):
         layers = self.layers  # fmt: skip
 
         l = len(layers) - 1
-        V: List[Tensor] = cast(List[Tensor], [None] * len(layers))
-        self.V: List[Tensor] = V
-        V[l] = layers[-1].forward()
+        V_list: List[Tensor] = cast(List[Tensor], [None] * len(layers))
+        self.V_list: List[Tensor] = V_list
+        V_list[l] = layers[-1].forward()
 
         for i in range(l - 1, 0, -1):  # From l-1 to 1 (inclusive)
-            V[i] = layers[i].forward(V[i + 1])
+            V_list[i] = layers[i].forward(V_list[i + 1])
 
-        max_objective, theta = self.compute_max_objective(V)
+        max_objective, theta = self.compute_max_objective(V_list)
         return max_objective, theta
 
-    def compute_max_objective(self, V: List[Tensor]) -> Tuple[Tensor, Tensor]:
+    def compute_max_objective(self, V_list: List[Tensor]) -> Tuple[Tensor, Tensor]:
         layers, d = self.layers, self.vars.d
 
         l = len(layers) - 1
-        theta: Tensor = layers[0].vars.C_i - V[1] @ layers[1].vars.W_i
+        theta: Tensor = layers[0].vars.C - V_list[1] @ layers[1].vars.W
         max_objective: Tensor = (
-            (F.relu(theta) @ layers[0].vars.L_i)
-            - (F.relu(-theta) @ layers[0].vars.U_i)
+            (F.relu(theta) @ layers[0].vars.L)
+            - (F.relu(-theta) @ layers[0].vars.U)
             + layers[-1].gamma @ d
-            - torch.stack([V[i] @ layers[i].vars.b_i for i in range(1, l + 1)]).sum(dim=0)
+            - torch.stack([V_list[i] @ layers[i].vars.b for i in range(1, l + 1)]).sum(dim=0)
             + torch.stack([self.layers[i].get_obj_sum() for i in range(1, l)]).sum(dim=0)
         )
         self.last_max_objective = max_objective.detach()
@@ -62,14 +62,14 @@ class Solver(nn.Module):
         assert self.vars.solve_coords[0][0] == layer_index
 
         # Clone the tensors to avoid modifying the original tensors
-        new_L_i: Tensor = self.vars.L[layer_index].clone().detach()
-        new_U_i: Tensor = self.vars.U[layer_index].clone().detach()
+        new_L: Tensor = self.vars.L_list[layer_index].clone().detach()
+        new_U: Tensor = self.vars.U_list[layer_index].clone().detach()
 
         # Iterate over the solve_coords
         for i, (_, coord) in enumerate(self.vars.solve_coords):
             # Replace bounds only if they're better than the initial bounds.
-            new_L_i[coord] = torch.max(new_L_i[coord], self.last_max_objective[2 * i])
+            new_L[coord] = torch.max(new_L[coord], self.last_max_objective[2 * i])
             # New upper bounds is negation of objective func.
-            new_U_i[coord] = torch.min(new_U_i[coord], -self.last_max_objective[2 * i + 1])
+            new_U[coord] = torch.min(new_U[coord], -self.last_max_objective[2 * i + 1])
 
-        return new_L_i, new_U_i
+        return new_L, new_U

@@ -4,17 +4,17 @@ from torch import Tensor
 
 
 class GurobiResults(TypedDict):
-    L_unstable_only: List[Tensor]
-    U_unstable_only: List[Tensor]
+    L_list_unstable_only: List[Tensor]
+    U_list_unstable_only: List[Tensor]
     compute_time: float
 
 
 class SolverInputsSavedDict(TypedDict):
-    L: List[Tensor]
-    U: List[Tensor]
+    L_list: List[Tensor]
+    U_list: List[Tensor]
     H: Tensor
     d: Tensor
-    P: List[Tensor]
-    P_hat: List[Tensor]
-    p: List[Tensor]
+    P_list: List[Tensor]
+    P_hat_list: List[Tensor]
+    p_list: List[Tensor]
     ground_truth_neuron_index: int

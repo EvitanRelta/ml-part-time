@@ -45,8 +45,8 @@ def solve(
     """
     solver = Solver(solver_inputs).to(device)
 
-    new_L: List[Tensor] = []
-    new_U: List[Tensor] = []
+    new_L_list: List[Tensor] = []
+    new_U_list: List[Tensor] = []
     for layer_index in range(len(solver.layers) - 1):  # Don't solve for last layer
         solver.reset_and_solve_for_layer(layer_index)
         is_falsified = train(
@@ -57,12 +57,16 @@ def solve(
         if is_falsified:
             return (True, None, None, solver) if return_solver else (True, None, None)
 
-        new_L_i, new_U_i = solver.get_updated_bounds(layer_index)
-        new_L.append(new_L_i)
-        new_U.append(new_U_i)
+        new_L, new_U = solver.get_updated_bounds(layer_index)
+        new_L_list.append(new_L)
+        new_U_list.append(new_U)
 
     # Add last initial bounds.
-    new_L.append(solver.vars.L[-1])
-    new_U.append(solver.vars.U[-1])
+    new_L_list.append(solver.vars.L_list[-1])
+    new_U_list.append(solver.vars.U_list[-1])
 
-    return (False, new_L, new_U, solver) if return_solver else (False, new_L, new_U)
+    return (
+        (False, new_L_list, new_U_list, solver)
+        if return_solver
+        else (False, new_L_list, new_U_list)
+    )
