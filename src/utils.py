@@ -52,7 +52,9 @@ def convert_and_save_solver_inputs(
     assert isinstance(Phatall, list) and all(
         isinstance(item, np.ndarray) for item in Phatall
     ), list_error_msg.format(var="Phatall")
-    assert isinstance(smallpall, np.ndarray), array_error_msg.format(var="smallpall")
+    assert isinstance(smallpall, List) and all(
+        isinstance(item, np.ndarray) for item in smallpall
+    ), list_error_msg.format(var="smallpall")
     assert isinstance(Hmatrix, np.ndarray), array_error_msg.format(var="Hmatrix")
     assert isinstance(dvector, np.ndarray), array_error_msg.format(var="dvector")
     assert isinstance(
