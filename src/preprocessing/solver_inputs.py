@@ -31,13 +31,13 @@ class SolverInputs:
     def _validate_types(self) -> None:
         assert isinstance(self.model, nn.Module)
         assert isinstance(self.ground_truth_neuron_index, int)
-        assert isinstance(self.L, List) and isinstance(self.L[0], Tensor)
-        assert isinstance(self.U, List) and isinstance(self.U[0], Tensor)
+        assert isinstance(self.L, list) and isinstance(self.L[0], Tensor)
+        assert isinstance(self.U, list) and isinstance(self.U[0], Tensor)
         assert isinstance(self.H, Tensor)
         assert isinstance(self.d, Tensor)
-        assert isinstance(self.P, List) and isinstance(self.P[0], Tensor)
-        assert isinstance(self.P_hat, List) and isinstance(self.P_hat[0], Tensor)
-        assert isinstance(self.p, List) and isinstance(self.p[0], Tensor)
+        assert isinstance(self.P, list) and isinstance(self.P[0], Tensor)
+        assert isinstance(self.P_hat, list) and isinstance(self.P_hat[0], Tensor)
+        assert isinstance(self.p, list) and isinstance(self.p[0], Tensor)
 
     def _validate_tensor_dtype(self) -> None:
         EXPECT_DTYPE = torch.float

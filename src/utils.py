@@ -40,16 +40,16 @@ def convert_and_save_solver_inputs(
     # Check that the variable types are correct.
     list_error_msg = "`{var}` is not type `List[np.ndarray]`."
     array_error_msg = "`{var}` is not type `np.ndarray`."
-    assert isinstance(lbounds, List) and all(
+    assert isinstance(lbounds, list) and all(
         isinstance(item, np.ndarray) for item in lbounds
     ), list_error_msg.format(var="lbounds")
-    assert isinstance(ubounds, List) and all(
+    assert isinstance(ubounds, list) and all(
         isinstance(item, np.ndarray) for item in ubounds
     ), list_error_msg.format(var="ubounds")
-    assert isinstance(Pall, List) and all(
+    assert isinstance(Pall, list) and all(
         isinstance(item, np.ndarray) for item in Pall
     ), list_error_msg.format(var="Pall")
-    assert isinstance(Phatall, List) and all(
+    assert isinstance(Phatall, list) and all(
         isinstance(item, np.ndarray) for item in Phatall
     ), list_error_msg.format(var="Phatall")
     assert isinstance(smallpall, np.ndarray), array_error_msg.format(var="smallpall")
