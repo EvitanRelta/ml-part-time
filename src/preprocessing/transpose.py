@@ -1,4 +1,5 @@
 import math
+from functools import reduce
 from typing import Tuple
 
 import torch
@@ -37,7 +38,11 @@ def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Bias, int]:
     bias = linear.bias if linear.bias is not None else torch.zeros((weight.size(0),))
 
     # Create a new Linear layer with transposed weight and without bias
-    transposed_linear = nn.Linear(weight.size(1), weight.size(0), bias=False)
+    transposed_linear = nn.Linear(
+        in_features=linear.out_features,
+        out_features=linear.in_features,
+        bias=False,
+    )
     transposed_linear.weight = nn.Parameter(weight.t().clone().detach(), requires_grad=False)
 
     return transposed_linear, LinearBias(bias.clone().detach()), linear.in_features
@@ -54,10 +59,12 @@ def transpose_conv2d(conv2d: nn.Conv2d, conv2d_total_output: int) -> Tuple[Unary
         else torch.zeros((conv2d.out_channels,))
     )
 
+    output_shape = compute_conv2d_input_shape(conv2d, conv2d_output_shape)
+    output_num_elements = reduce(lambda x, y: x * y, output_shape)
     return (
         ConvTranspose2dFlattenNoBias(conv2d, conv2d_output_shape),
         Conv2dFlattenBias(bias),
-        sum(compute_conv2d_input_shape(conv2d, conv2d_output_shape)),
+        output_num_elements,
     )
 
 
