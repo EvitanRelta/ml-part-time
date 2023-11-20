@@ -1,4 +1,5 @@
 import random
+from typing import Union
 
 import numpy as np
 import onnx
@@ -24,39 +25,44 @@ def load_onnx_model(onnx_file_path: str) -> nn.Module:
 
 
 def convert_and_save_solver_inputs(
-    lbounds: List[np.ndarray],
-    ubounds: List[np.ndarray],
-    Pall: List[np.ndarray],
-    Phatall: List[np.ndarray],
-    smallpall: List[np.ndarray],
-    Hmatrix: np.ndarray,
-    dvector: np.ndarray,
+    lbounds: List[Union[np.ndarray, Tensor]],
+    ubounds: List[Union[np.ndarray, Tensor]],
+    Pall: List[Union[np.ndarray, Tensor]],
+    Phatall: List[Union[np.ndarray, Tensor]],
+    smallpall: List[Union[np.ndarray, Tensor]],
+    Hmatrix: Union[np.ndarray, Tensor],
+    dvector: Union[np.ndarray, Tensor],
     ground_truth_neuron_index: int,
     save_filename: str = "dump.pth",
 ) -> None:
-    """Converts raw solver inputs from numpy arrays to pytorch, then saves them
-    to a Pytorch `.pth` file specified by the `save_filename` parameter.
+    """Converts raw solver inputs from numpy-arrays / pytorch-tensors to the
+    expected input type/shape, then saves them to a Pytorch `.pth` file
+    specified by the `save_filename` parameter.
     """
     # Check that the variable types are correct.
     list_error_msg = "`{var}` is not type `List[np.ndarray]`."
     array_error_msg = "`{var}` is not type `np.ndarray`."
     assert isinstance(lbounds, list) and all(
-        isinstance(item, np.ndarray) for item in lbounds
+        isinstance(item, np.ndarray) or isinstance(item, Tensor) for item in lbounds
     ), list_error_msg.format(var="lbounds")
     assert isinstance(ubounds, list) and all(
-        isinstance(item, np.ndarray) for item in ubounds
+        isinstance(item, np.ndarray) or isinstance(item, Tensor) for item in ubounds
     ), list_error_msg.format(var="ubounds")
     assert isinstance(Pall, list) and all(
-        isinstance(item, np.ndarray) for item in Pall
+        isinstance(item, np.ndarray) or isinstance(item, Tensor) for item in Pall
     ), list_error_msg.format(var="Pall")
     assert isinstance(Phatall, list) and all(
-        isinstance(item, np.ndarray) for item in Phatall
+        isinstance(item, np.ndarray) or isinstance(item, Tensor) for item in Phatall
     ), list_error_msg.format(var="Phatall")
-    assert isinstance(smallpall, List) and all(
-        isinstance(item, np.ndarray) for item in smallpall
+    assert isinstance(smallpall, list) and all(
+        isinstance(item, np.ndarray) or isinstance(item, Tensor) for item in smallpall
     ), list_error_msg.format(var="smallpall")
-    assert isinstance(Hmatrix, np.ndarray), array_error_msg.format(var="Hmatrix")
-    assert isinstance(dvector, np.ndarray), array_error_msg.format(var="dvector")
+    assert isinstance(Hmatrix, np.ndarray) or isinstance(Hmatrix, Tensor), array_error_msg.format(
+        var="Hmatrix"
+    )
+    assert isinstance(dvector, np.ndarray) or isinstance(dvector, Tensor), array_error_msg.format(
+        var="dvector"
+    )
     assert isinstance(
         ground_truth_neuron_index, int
     ), "`ground_truth_neuron_index` is not type `int`."
