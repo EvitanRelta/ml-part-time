@@ -12,6 +12,10 @@ is_falsified, new_L_list, new_U_list, solver = solve(
     return_solver=True,
 )
 
+if is_falsified:
+    print("Verification problem is falsified.")
+    exit(0)
+
 unstable_masks = solver.vars.unstable_masks
 
 compare_against_gurobi(
