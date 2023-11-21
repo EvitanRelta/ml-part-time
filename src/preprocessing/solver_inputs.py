@@ -1,8 +1,11 @@
+import math
 from dataclasses import dataclass
 from typing import List
 
 import torch
 from torch import Tensor, nn
+
+from ..preprocessing.hwc_to_chw import flatten_hwc_to_chw, flatten_unstable_hwc_to_chw
 
 
 @dataclass
@@ -21,11 +24,61 @@ class SolverInputs:
     skip_validation: bool = False
 
     def __post_init__(self) -> None:
+        self._convert_hwc_to_chw()
+
         if self.skip_validation:
             return
         self._validate_types()
         self._validate_tensor_dtype()
         self._validate_dimensions()
+
+    def _convert_hwc_to_chw(self) -> None:
+        first_layer = next(self.model.children())
+
+        if isinstance(first_layer, nn.Conv2d):
+            num_neurons = self.L_list[0].size(0)
+            num_channels = first_layer.in_channels
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            self.L_list[0] = flatten_hwc_to_chw(self.L_list[0], hwc_shape)
+            self.U_list[0] = flatten_hwc_to_chw(self.U_list[0], hwc_shape)
+
+        i = 1
+        for layer in self.model.children():
+            if isinstance(layer, nn.Linear):
+                i += 1
+                continue
+            if not isinstance(layer, nn.Conv2d):
+                continue
+
+            num_neurons = self.L_list[i].size(0)
+            num_channels = layer.out_channels
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            unstable_mask = (self.L_list[i] < 0) & (self.U_list[i] > 0)
+            self.L_list[i] = flatten_hwc_to_chw(self.L_list[i], hwc_shape)
+            self.U_list[i] = flatten_hwc_to_chw(self.U_list[i], hwc_shape)
+
+            is_last_layer = i >= len(self.P_list) + 1
+            if is_last_layer:
+                continue
+
+            self.P_list[i - 1] = flatten_unstable_hwc_to_chw(
+                self.P_list[i - 1],
+                unstable_mask,
+                hwc_shape,
+                mask_dim=1,
+            )
+            self.P_hat_list[i - 1] = flatten_unstable_hwc_to_chw(
+                self.P_hat_list[i - 1],
+                unstable_mask,
+                hwc_shape,
+                mask_dim=1,
+            )
+            i += 1
+            continue
 
     def _validate_types(self) -> None:
         assert isinstance(self.model, nn.Module)
