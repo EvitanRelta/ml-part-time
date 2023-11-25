@@ -9,6 +9,7 @@ from torch import Tensor, nn
 from typing_extensions import List
 
 from .inputs.save_file_types import SolverInputsSavedDict
+from .preprocessing.solver_inputs import SolverInputs
 
 
 def seed_everything(seed: int) -> None:
@@ -90,3 +91,36 @@ def convert_and_save_solver_inputs(
         "ground_truth_neuron_index": ground_truth_neuron_index,
     }
     torch.save(saved_dict, save_filename)
+
+
+def wrap_solver_inputs(
+    lbounds: Union[List[np.ndarray], List[Tensor]],
+    ubounds: Union[List[np.ndarray], List[Tensor]],
+    Pall: Union[List[np.ndarray], List[Tensor]],
+    Phatall: Union[List[np.ndarray], List[Tensor]],
+    smallpall: Union[List[np.ndarray], List[Tensor]],
+    Hmatrix: Union[np.ndarray, Tensor],
+    dvector: Union[np.ndarray, Tensor],
+    ground_truth_neuron_index: int,
+    model: nn.Module,
+) -> SolverInputs:
+    L_list: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in lbounds]
+    U_list: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in ubounds]
+    H: Tensor = torch.atleast_2d(torch.tensor(Hmatrix).float().squeeze())
+    d: Tensor = torch.atleast_1d(torch.tensor(dvector).float().squeeze())
+    P_list: List[Tensor] = [torch.atleast_2d(torch.tensor(x).float().squeeze()) for x in Pall]
+    P_hat_list: List[Tensor] = [
+        torch.atleast_2d(torch.tensor(x).float().squeeze()) for x in Phatall
+    ]
+    p_list: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in smallpall]
+    return SolverInputs(
+        model=model,
+        ground_truth_neuron_index=ground_truth_neuron_index,
+        L_list=L_list,
+        U_list=U_list,
+        H=H,
+        d=d,
+        P_list=P_list,
+        P_hat_list=P_hat_list,
+        p_list=p_list,
+    )
