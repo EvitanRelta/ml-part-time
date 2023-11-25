@@ -25,11 +25,11 @@ def load_onnx_model(onnx_file_path: str) -> nn.Module:
 
 
 def convert_and_save_solver_inputs(
-    lbounds: List[Union[np.ndarray, Tensor]],
-    ubounds: List[Union[np.ndarray, Tensor]],
-    Pall: List[Union[np.ndarray, Tensor]],
-    Phatall: List[Union[np.ndarray, Tensor]],
-    smallpall: List[Union[np.ndarray, Tensor]],
+    lbounds: Union[List[np.ndarray], List[Tensor]],
+    ubounds: Union[List[np.ndarray], List[Tensor]],
+    Pall: Union[List[np.ndarray], List[Tensor]],
+    Phatall: Union[List[np.ndarray], List[Tensor]],
+    smallpall: Union[List[np.ndarray], List[Tensor]],
     Hmatrix: Union[np.ndarray, Tensor],
     dvector: Union[np.ndarray, Tensor],
     ground_truth_neuron_index: int,
