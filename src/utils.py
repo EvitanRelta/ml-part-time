@@ -93,6 +93,15 @@ def convert_and_save_solver_inputs(
     torch.save(saved_dict, save_filename)
 
 
+def ensure_tensor(array_or_tensor: Union[np.ndarray, Tensor]) -> Tensor:
+    """Converts `array_or_tensor` to a Pytorch Tensor if necessary."""
+    return (
+        torch.from_numpy(array_or_tensor)
+        if isinstance(array_or_tensor, np.ndarray)
+        else array_or_tensor
+    )
+
+
 def wrap_solver_inputs(
     lbounds: Union[List[np.ndarray], List[Tensor]],
     ubounds: Union[List[np.ndarray], List[Tensor]],
@@ -104,15 +113,15 @@ def wrap_solver_inputs(
     ground_truth_neuron_index: int,
     model: nn.Module,
 ) -> SolverInputs:
-    L_list: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in lbounds]
-    U_list: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in ubounds]
-    H: Tensor = torch.atleast_2d(torch.tensor(Hmatrix).float().squeeze())
-    d: Tensor = torch.atleast_1d(torch.tensor(dvector).float().squeeze())
-    P_list: List[Tensor] = [torch.atleast_2d(torch.tensor(x).float().squeeze()) for x in Pall]
+    L_list: List[Tensor] = [torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in lbounds]
+    U_list: List[Tensor] = [torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in ubounds]
+    H: Tensor = torch.atleast_2d(ensure_tensor(Hmatrix).float().squeeze())
+    d: Tensor = torch.atleast_1d(ensure_tensor(dvector).float().squeeze())
+    P_list: List[Tensor] = [torch.atleast_2d(ensure_tensor(x).float().squeeze()) for x in Pall]
     P_hat_list: List[Tensor] = [
-        torch.atleast_2d(torch.tensor(x).float().squeeze()) for x in Phatall
+        torch.atleast_2d(ensure_tensor(x).float().squeeze()) for x in Phatall
     ]
-    p_list: List[Tensor] = [torch.atleast_1d(torch.tensor(x).float().squeeze()) for x in smallpall]
+    p_list: List[Tensor] = [torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in smallpall]
     return SolverInputs(
         model=model,
         ground_truth_neuron_index=ground_truth_neuron_index,
