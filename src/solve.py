@@ -1,6 +1,7 @@
 from typing import List, Literal, Tuple, Union, overload
 
 import torch
+from numpy.typing import NDArray
 from torch import Tensor
 
 from .modules.Solver import Solver
@@ -10,11 +11,11 @@ from .train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[Tensor], List[Tensor]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[NDArray], List[NDArray]]: ...
 @overload
 def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[Tensor], List[Tensor], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[NDArray], List[NDArray], Solver]: ...
 @overload
 def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
@@ -25,8 +26,8 @@ def solve(
     num_epoch_adv_check: int = 10,
     run_adv_check: bool = True,
 ) -> Union[
-    Tuple[bool, Union[List[Tensor], None], Union[List[Tensor], None]],
-    Tuple[bool, Union[List[Tensor], None], Union[List[Tensor], None], Solver],
+    Tuple[bool, Union[List[NDArray], None], Union[List[NDArray], None]],
+    Tuple[bool, Union[List[NDArray], None], Union[List[NDArray], None], Solver],
 ]:
     """
     Args:
@@ -65,8 +66,12 @@ def solve(
     new_L_list.append(solver.vars.L_list[-1])
     new_U_list.append(solver.vars.U_list[-1])
 
+    # Convert tensors to numpy arrays.
+    numpy_L_list: List[NDArray] = [x.numpy() for x in new_L_list]
+    numpy_U_list: List[NDArray] = [x.numpy() for x in new_U_list]
+
     return (
-        (False, new_L_list, new_U_list, solver)
+        (False, numpy_L_list, numpy_U_list, solver)
         if return_solver
-        else (False, new_L_list, new_U_list)
+        else (False, numpy_L_list, numpy_U_list)
     )
