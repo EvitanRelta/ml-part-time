@@ -67,8 +67,8 @@ def solve(
     new_U_list.append(solver.vars.U_list[-1])
 
     # Convert tensors to numpy arrays.
-    numpy_L_list: List[ndarray] = [x.numpy() for x in new_L_list]
-    numpy_U_list: List[ndarray] = [x.numpy() for x in new_U_list]
+    numpy_L_list: List[ndarray] = [x.cpu().numpy() for x in new_L_list]
+    numpy_U_list: List[ndarray] = [x.cpu().numpy() for x in new_U_list]
 
     return (
         (False, numpy_L_list, numpy_U_list, solver)
