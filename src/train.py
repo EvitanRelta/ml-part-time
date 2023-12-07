@@ -48,6 +48,7 @@ def train(
     stop_patience: int = 10,
     stop_threshold: float = 1e-3,
     run_adv_check: bool = True,
+    disable_progress_bar: bool = False,
 ) -> bool:
     """Train `solver` until convergence or until the problem is falsified, and
     return whether the problem was falsified.
@@ -67,6 +68,7 @@ def train(
             for early-stopping. No improvement is when `current_loss >= best_loss * (1 - threshold)`. \
             Defaults to 1e-4.
         run_adv_check (bool, optional): Whether to run the adversarial check. Defaults to True.
+        disable_progress_bar (bool, optional): Whether to disable tqdm's progress bar during training.
 
     Returns:
         bool: Whether the problem was falsified. `False` if `solver` was trained to \
@@ -85,7 +87,13 @@ def train(
     theta_list: List[Tensor] = []
 
     epoch = 1
-    pbar = tqdm(desc="Training", total=None, unit=" epoch", initial=epoch)
+    pbar = tqdm(
+        desc="Training",
+        total=None,
+        unit=" epoch",
+        initial=epoch,
+        disable=disable_progress_bar,
+    )
     while True:
         max_objective, theta = solver.forward()
         if run_adv_check:
@@ -98,7 +106,6 @@ def train(
         if early_stop_handler.is_early_stopped(loss_float):
             pbar.set_description(f"Training stopped at epoch {epoch}, Loss: {loss_float}")
             pbar.close()
-            print()
             break
 
         # Backward pass and optimization.

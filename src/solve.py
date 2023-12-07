@@ -11,13 +11,13 @@ from .train import train
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[ndarray], List[ndarray]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[True], List[ndarray], List[ndarray]]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[True], List[ndarray], List[ndarray], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[True], List[ndarray], List[ndarray], Solver]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True) -> Tuple[Literal[False], None, None, Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
 def solve(
     solver_inputs: SolverInputs,
@@ -25,6 +25,7 @@ def solve(
     device: torch.device = torch.device("cpu"),
     num_epoch_adv_check: int = 10,
     run_adv_check: bool = True,
+    disable_progress_bar: bool = False,
 ) -> Union[
     Tuple[bool, Union[List[ndarray], None], Union[List[ndarray], None]],
     Tuple[bool, Union[List[ndarray], None], Union[List[ndarray], None], Solver],
@@ -38,11 +39,11 @@ def solve(
         num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
             epochs. Defaults to 10.
         run_adv_check (bool, optional): Whether to run the adversarial check. Defaults to True.
+        disable_progress_bar (bool, optional): Whether to disable tqdm's progress bar during training.
 
     Returns:
         `(is_falsified, new_lower_bounds, new_upper_bounds)` and optionally, the `Solver` instance \
             as the last element if `return_solver == True`.
-
     """
     solver = Solver(solver_inputs).to(device)
 
@@ -54,6 +55,7 @@ def solve(
             solver,
             num_epoch_adv_check=num_epoch_adv_check,
             run_adv_check=run_adv_check,
+            disable_progress_bar=disable_progress_bar,
         )
         if is_falsified:
             return (True, None, None, solver) if return_solver else (True, None, None)
