@@ -54,38 +54,20 @@ d: Tensor = torch.tensor([0, 0, 0, 1, -2, -2, -2]).float()
 # -x7 <= 0, -x8 <= 0, -0.5x4 +x7 -1 <= 0, -0.5x5+x8 -1 <= 0, 2x4+x5-x7-x8 <= 0, -x7-x8-2 <= 0
 # xi is [x4, x5], xi_hat is [x7, x8]
 P_list: List[Tensor] = [
-    torch.tensor(
-        [
-            [0, 0],
-            [0, 0],
-            [-0.5, 0],
-            [0, -0.5],
-            [2, 1],
-            [0, 0],
-        ]
-    ).float(),
+    torch.zeros((1, 2)).float(),
 ]
 """`P_list` matrix in the constraint `Pxi + P_hatxi_hat - p_list <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
 P_hat_list: List[Tensor] = [
-    torch.tensor(
-        [
-            [-1, 0],
-            [0, -1],
-            [1, 0],
-            [0, 1],
-            [-1, -1],
-            [-1, -1],
-        ]
-    ).float(),
+    torch.zeros((1, 2)).float(),
 ]
 
 """`P_hat_list` matrix in the constraint `Pxi + P_hatxi_hat - p_list <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
 
 p_list: List[Tensor] = [
-    torch.tensor([0, 0, 1, 1, 0, 2]).float(),
+    torch.zeros((1,)).float(),
 ]
 """`p_list` vector in the constraint `Pxi + P_hatxi_hat - p_list <= 0`, w.r.t
 intermediate unstable neurons and their respective inputs."""
