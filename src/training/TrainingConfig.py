@@ -11,6 +11,15 @@ class TrainingConfig:
     min_lr: float = 1e-6
     """Min learning-rate to decay until.
     The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-6."""
+    reduce_lr_factor: float = 0.5
+    """Factor by which the learning rate will be reduced.
+    The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.5"""
+    reduce_lr_patience: int = 3
+    """Number of epochs with no improvement after which learning rate will be reduced.
+    The `patience` param used by the `ReduceLROnPlateau` scheduler. Defaults to 3."""
+    reduce_lr_threshold: float = 0.001
+    """Threshold for measuring the new optimum, to only focus on significant changes.
+    The `threshold` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.001."""
 
     # ==========================================================================
     #                           Early-stopping configs

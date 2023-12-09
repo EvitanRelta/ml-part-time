@@ -30,9 +30,9 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
     optimizer = Adam(solver.parameters(), config.max_lr)
     scheduler = ReduceLROnPlateau(
         optimizer,
-        factor=0.5,
-        patience=3,
-        threshold=0.001,
+        factor=config.reduce_lr_factor,
+        patience=config.reduce_lr_patience,
+        threshold=config.reduce_lr_threshold,
         min_lr=config.min_lr,
     )
     early_stop_handler = EarlyStopHandler(config.stop_patience, config.stop_threshold)
