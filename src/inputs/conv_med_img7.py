@@ -9,9 +9,8 @@ from ..preprocessing.linearize_conv2d import (
     linearize_conv2d,
 )
 from ..preprocessing.solver_inputs import SolverInputs
-from ..utils import load_onnx_model
+from ..utils import load_onnx_model, set_abs_path_to
 from .save_file_types import GurobiResults, SolverInputsSavedDict
-from .utils import set_abs_path_to
 
 CURRENT_DIR = os.path.dirname(__file__)
 get_abs_path = set_abs_path_to(CURRENT_DIR)

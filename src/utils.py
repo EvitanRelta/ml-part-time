@@ -1,5 +1,6 @@
+import os
 import random
-from typing import Union
+from typing import Callable, Union
 
 import numpy as np
 import onnx
@@ -10,6 +11,22 @@ from typing_extensions import List
 
 from .inputs.save_file_types import SolverInputsSavedDict
 from .preprocessing.solver_inputs import SolverInputs
+
+
+def set_abs_path_to(current_dir: str) -> Callable[[str], str]:
+    """Higher-order-function for getting absolute paths relative to `current_dir`.
+
+    Examples:
+        ```python
+        CURRENT_DIR = os.path.dirname(__file__)
+        get_abs_path = set_abs_path_to(CURRENT_DIR)
+
+        # Gets absolute path of `file.ext` that's in the
+        # same dir as the current file.
+        get_abs_path("file.ext")
+        ```
+    """
+    return lambda path: os.path.join(current_dir, path)
 
 
 def seed_everything(seed: int) -> None:
