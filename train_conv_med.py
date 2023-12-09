@@ -1,11 +1,23 @@
+import os
+
 import torch
 
 from src.compare_against_gurobi import compare_against_gurobi
 from src.inputs.conv_med import gurobi_results, solver_inputs
 from src.solve import solve
-from src.utils import seed_everything
+from src.training.TrainingConfig import TrainingConfig
+from src.utils import seed_everything, set_abs_path_to
+
+CURRENT_DIR = os.path.dirname(__file__)
+get_abs_path = set_abs_path_to(CURRENT_DIR)
+CONFIG_FILE_PATH = get_abs_path("default_training_config.yaml")
 
 seed_everything(0)
+
+# Loading training configs from YAML file.
+training_config = TrainingConfig.from_yaml_file(CONFIG_FILE_PATH)
+assert not isinstance(training_config, list)
+
 is_falsified, new_L_list, new_U_list, solver = solve(
     solver_inputs,
     device=torch.device("cpu"),
