@@ -8,18 +8,10 @@ from tqdm.autonotebook import tqdm
 
 from ..modules.Solver import Solver
 from .EarlyStopHandler import EarlyStopHandler
+from .TrainingConfig import TrainingConfig
 
 
-def train(
-    solver: Solver,
-    num_epoch_adv_check: int = 10,
-    max_lr: float = 2,
-    min_lr: float = 1e-6,
-    stop_patience: int = 10,
-    stop_threshold: float = 1e-3,
-    run_adv_check: bool = True,
-    disable_progress_bar: bool = False,
-) -> bool:
+def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
     """Train `solver` until convergence or until the problem is falsified, and
     return whether the problem was falsified.
 
@@ -28,31 +20,22 @@ def train(
 
     Args:
         solver (Solver): The `Solver` model to train.
-        num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
-            epochs. Defaults to 10.
-        max_lr (float, optional): Max learning-rate. Defaults to 1.
-        min_lr (float, optional): Min learning-rate to decay until. Defaults to 1e-5.
-        stop_patience (int, optional): Num. of epochs with no improvement, after which training \
-            should be stopped. Defaults to 10.
-        stop_threshold (float, optional): Threshold to determine whether there's "no improvement" \
-            for early-stopping. No improvement is when `current_loss >= best_loss * (1 - threshold)`. \
-            Defaults to 1e-4.
-        run_adv_check (bool, optional): Whether to run the adversarial check. Defaults to True.
-        disable_progress_bar (bool, optional): Whether to disable tqdm's progress bar during training.
+        config (TrainingConfig, optional): Configuration to use during training. \
+            Defaults to TrainingConfig().
 
     Returns:
         bool: Whether the problem was falsified. `False` if `solver` was trained to \
             convergence, `True` if training was stopped prematurely due to being falsified.
     """
-    optimizer = Adam(solver.parameters(), max_lr)
+    optimizer = Adam(solver.parameters(), config.max_lr)
     scheduler = ReduceLROnPlateau(
         optimizer,
         factor=0.5,
         patience=3,
         threshold=0.001,
-        min_lr=min_lr,
+        min_lr=config.min_lr,
     )
-    early_stop_handler = EarlyStopHandler(stop_patience, stop_threshold)
+    early_stop_handler = EarlyStopHandler(config.stop_patience, config.stop_threshold)
 
     theta_list: List[Tensor] = []
 
@@ -62,11 +45,11 @@ def train(
         total=None,
         unit=" epoch",
         initial=epoch,
-        disable=disable_progress_bar,
+        disable=config.disable_progress_bar,
     )
     while True:
         max_objective, theta = solver.forward()
-        if run_adv_check:
+        if config.run_adv_check:
             # Accumulate thetas for later concrete-input adversarial checking.
             theta_list.append(theta)
 
@@ -87,7 +70,7 @@ def train(
         # Clamp learnable parameters to their respective value ranges.
         solver.clamp_parameters()
 
-        if run_adv_check and epoch % num_epoch_adv_check == 0:
+        if config.run_adv_check and epoch % config.num_epoch_adv_check == 0:
             # Check if accumulated thetas fails adversarial check.
             # If it fails, stop prematurely. If it passes, purge the
             # accumulated thetas to free up memory.
@@ -101,7 +84,7 @@ def train(
         epoch += 1
 
     if (
-        run_adv_check
+        config.run_adv_check
         and len(theta_list) > 0
         and is_falsified_by_concrete_inputs(solver, theta_list)
     ):

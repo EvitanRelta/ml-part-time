@@ -7,25 +7,24 @@ from torch import Tensor
 from .modules.Solver import Solver
 from .preprocessing.solver_inputs import SolverInputs
 from .training.train import train
+from .training.TrainingConfig import TrainingConfig
 
 
 # fmt: off
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[True], List[ndarray], List[ndarray]]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), training_config: TrainingConfig = TrainingConfig()) -> Tuple[Literal[True], List[ndarray], List[ndarray]]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[False], None, None]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[False] = False, device: torch.device = torch.device('cpu'), training_config: TrainingConfig = TrainingConfig()) -> Tuple[Literal[False], None, None]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[True], List[ndarray], List[ndarray], Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), training_config: TrainingConfig = TrainingConfig()) -> Tuple[Literal[True], List[ndarray], List[ndarray], Solver]: ...
 @overload
-def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), num_epoch_adv_check: int = 10, run_adv_check: bool = True, disable_progress_bar: bool = False) -> Tuple[Literal[False], None, None, Solver]: ...
+def solve(solver_inputs: SolverInputs, return_solver: Literal[True], device: torch.device = torch.device('cpu'), training_config: TrainingConfig = TrainingConfig()) -> Tuple[Literal[False], None, None, Solver]: ...
 # fmt: on
 def solve(
     solver_inputs: SolverInputs,
     return_solver: bool = False,
     device: torch.device = torch.device("cpu"),
-    num_epoch_adv_check: int = 10,
-    run_adv_check: bool = True,
-    disable_progress_bar: bool = False,
+    training_config: TrainingConfig = TrainingConfig(),
 ) -> Union[
     Tuple[bool, Union[List[ndarray], None], Union[List[ndarray], None]],
     Tuple[bool, Union[List[ndarray], None], Union[List[ndarray], None], Solver],
@@ -36,10 +35,8 @@ def solve(
         return_solver (bool, optional): Whether to also return the `Solver` instance. \
             Defaults to False.
         device (torch.device, optional): Device to compute on. Defaults to torch.device("cpu").
-        num_epoch_adv_check (int, optional): Perform adversarial check every `num_epoch_adv_check`\
-            epochs. Defaults to 10.
-        run_adv_check (bool, optional): Whether to run the adversarial check. Defaults to True.
-        disable_progress_bar (bool, optional): Whether to disable tqdm's progress bar during training.
+        training_config (TrainingConfig, optional): Configuration to use during training. \
+            Defaults to TrainingConfig().
 
     Returns:
         `(is_falsified, new_lower_bounds, new_upper_bounds)` and optionally, the `Solver` instance \
@@ -51,12 +48,7 @@ def solve(
     new_U_list: List[Tensor] = []
     for layer_index in range(len(solver.layers) - 1):  # Don't solve for last layer
         solver.reset_and_solve_for_layer(layer_index)
-        is_falsified = train(
-            solver,
-            num_epoch_adv_check=num_epoch_adv_check,
-            run_adv_check=run_adv_check,
-            disable_progress_bar=disable_progress_bar,
-        )
+        is_falsified = train(solver, training_config)
         if is_falsified:
             return (True, None, None, solver) if return_solver else (True, None, None)
 
