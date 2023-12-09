@@ -28,8 +28,9 @@ class TrainingConfig:
     """Num. of epochs with no improvement, after which training should be stopped.
     Defaults to 10."""
     stop_threshold: float = 1e-3
-    """Threshold to determine whether there's "no improvement" for early-stopping. No improvement
-    is when `current_loss >= best_loss * (1 - threshold)`. Defaults to 1e-3."""
+    """Threshold to determine whether there's "no improvement" for early-stopping.
+    No improvement is when `current_loss >= best_loss * (1 - threshold)`.
+    Defaults to 1e-3."""
 
     # ==========================================================================
     #                                Misc. configs
