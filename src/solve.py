@@ -6,7 +6,7 @@ from torch import Tensor
 
 from .modules.Solver import Solver
 from .preprocessing.solver_inputs import SolverInputs
-from .train import train
+from .training.train import train
 
 
 # fmt: off
