@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+from dataclass_wizard import YAMLWizard
+
 
 @dataclass
-class TrainingConfig:
+class TrainingConfig(YAMLWizard):
     # ==========================================================================
     #                      Optimizer & LR-scheduler configs
     # ==========================================================================

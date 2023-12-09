@@ -1,0 +1,53 @@
+# ==============================================================================
+#                Default training configuration / hyper-parameters
+# ==============================================================================
+
+
+# ==============================================================================
+#                        Optimizer & LR-scheduler configs
+# ==============================================================================
+# Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 2.
+max_lr: 2
+
+# Min learning-rate to decay until.
+# The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-6.
+min_lr: 1.0e-6
+
+# Factor by which the learning rate will be reduced.
+# The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.5
+reduce_lr_factor: 0.5
+
+# Number of epochs with no improvement after which learning rate will be reduced.
+# The `patience` param used by the `ReduceLROnPlateau` scheduler. Defaults to 3.
+reduce_lr_patience: 3
+
+# Threshold for measuring the new optimum, to only focus on significant changes.
+# The `threshold` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.001.
+reduce_lr_threshold: 0.001
+
+
+# ==============================================================================
+#                             Early-stopping configs
+# ==============================================================================
+# Num. of epochs with no improvement, after which training should be stopped.
+# Defaults to 10.
+stop_patience: 10
+
+# Threshold to determine whether there's "no improvement" for early-stopping.
+# No improvement is when `current_loss >= best_loss * (1 - threshold)`.
+# Defaults to 1e-3.
+stop_threshold: 1.0e-3
+
+
+# ==============================================================================
+#                                  Misc. configs
+# ==============================================================================
+# Whether to run the adversarial check. Defaults to True.
+run_adv_check: True
+
+# Perform adversarial check every `num_epoch_adv_check` epochs. Only has an effect when
+# `run_adv_check=True`. Defaults to 10.
+num_epoch_adv_check: 10
+
+# Whether to disable tqdm's progress bar during training. Defaults to False.
+disable_progress_bar: False
