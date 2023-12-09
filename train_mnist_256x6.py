@@ -19,8 +19,8 @@ if is_falsified:
 unstable_masks = solver.vars.unstable_masks
 
 compare_against_gurobi(
-    new_L_list=new_L_list,
-    new_U_list=new_U_list,
+    new_L_list=[torch.from_numpy(x) for x in new_L_list],
+    new_U_list=[torch.from_numpy(x) for x in new_U_list],
     unstable_masks=unstable_masks,
     initial_L_list=solver_inputs.L_list,
     initial_U_list=solver_inputs.U_list,
