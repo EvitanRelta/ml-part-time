@@ -22,6 +22,7 @@ is_falsified, new_L_list, new_U_list, solver = solve(
     solver_inputs,
     device=torch.device("cpu"),
     return_solver=True,
+    training_config=training_config,
 )
 
 if is_falsified:
