@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from dataclass_wizard import YAMLWizard
+from typing_extensions import override
 
 
 @dataclass
@@ -44,3 +45,9 @@ class TrainingConfig(YAMLWizard):
     `run_adv_check=True`. Defaults to 10."""
     disable_progress_bar: bool = False
     """Whether to disable tqdm's progress bar during training. Defaults to False."""
+
+    @override
+    @classmethod
+    def from_yaml_file(cls, file: str) -> "TrainingConfig":
+        """Reads the YAML file's contents and converts to an instance of `TrainingConfig`."""
+        return super().from_yaml_file(file)  # type: ignore
