@@ -9,6 +9,11 @@ from .base_class import SolverLayer
 
 
 class InputLayer(SolverLayer):
+    """The solver layer for the model's "input layer". This layer is the LAST
+    to evaluate, as the computation propagates from output-layer to
+    intermediate-layers to input-layer.
+    """
+
     @override
     def __init__(
         self,

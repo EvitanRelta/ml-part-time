@@ -6,6 +6,7 @@ from typing_extensions import TypeAlias
 
 
 def freeze_model(model: nn.Module) -> None:
+    """Freezes the model's learnable parameters."""
     for param in model.parameters():
         param.requires_grad = False
 

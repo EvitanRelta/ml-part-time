@@ -11,6 +11,11 @@ from .base_class import SolverLayer
 
 
 class IntermediateLayer(SolverLayer):
+    """The solver layer for the model's "intermediate layers". These layers are
+    evaluated after the solver-output-layer, as the computation propagates
+    from output-layer to intermediate-layers to input-layer.
+    """
+
     @override
     def __init__(
         self,

@@ -9,6 +9,22 @@ CNNShape: TypeAlias = Union[Tuple[int, int, int], torch.Size]
 
 
 def flatten_hwc_to_chw(X: Tensor, hwc_shape: CNNShape, permute_on_dim=0) -> Tensor:
+    """Takes in a flattened CNN input (or a batch of them) in the
+    Height-Width-Channel (HWC) format, then unflattens it back to HWC, converts
+    it to Channel-Height-Width (CHW) format, and then re-flattens it.
+
+    Currently only handles 1D or 2D tensors.
+
+    Args:
+        X (Tensor): 1D tensor in HWC format, or 2D where one of the dim is in HWC format.
+        hwc_shape (CNNShape): The supposed unflattened shape of the HWC-formatted dim.
+        permute_on_dim (int, optional): For 2D tensors; used to indicate which \
+            dim is the one in HWC format. Defaults to 0.
+
+    Returns:
+        Tensor: Tensor with same shape as `X` but `dim=permute_on_dim` is in \
+            flattened-CHW format, instead of flattened-HWC.
+    """
     assert X.dim() > permute_on_dim
     assert X.dim() <= 2
     assert reduce(lambda x, y: x * y, hwc_shape) == X.size(permute_on_dim)
@@ -38,6 +54,27 @@ def flatten_unstable_hwc_to_chw(
     hwc_shape: CNNShape,
     mask_dim: int = 0,
 ) -> Tensor:
+    """Takes in a flattened Height-Width-Channel (HWC) formatted tensor (or a
+    batch of them) that has been masked to only include the unstable neurons;
+    then unmasks it to include all neurons, unflattens it back to HWC,
+    converts it to Channel-Height-Width (CHW) format, re-flattens it, then
+    re-mask it to only include unstable neurons.
+
+    Currently only handles `unstable_only` being in 1D or 2D.
+
+    Args:
+        unstable_only (Tensor): Unstable-neuron-masked 1D tensor in HWC format, \
+            or 2D where one of the dim is in masked HWC format.
+        hwc_unstable_mask (Tensor): Mask in flattened-HWC format, selecting \
+            only the unstable neurons.
+        hwc_shape (CNNShape): The supposed unflattened shape of the unmasked HWC-formatted dim.
+        mask_dim (int, optional): For 2D tensors; used to indicate which \
+            dim is the one in masked HWC format. Defaults to 0.
+
+    Returns:
+        Tensor: Tensor with same shape as `unstable_only` but `dim=mask_dim` is \
+            in masked-flattened-CHW format, instead of masked-flattened-HWC.
+    """
     assert hwc_unstable_mask.dim() == 1
     assert reduce(lambda x, y: x * y, hwc_shape) == len(hwc_unstable_mask)
 

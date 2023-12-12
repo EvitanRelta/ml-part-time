@@ -10,6 +10,11 @@ from .base_class import SolverLayer
 
 
 class OutputLayer(SolverLayer):
+    """The solver layer for the model's "output layer". This layer is the FIRST
+    to evaluate, as the computation propagates from output-layer to
+    intermediate-layers to input-layer.
+    """
+
     @override
     def __init__(
         self,

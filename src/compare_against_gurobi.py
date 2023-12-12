@@ -17,6 +17,22 @@ def compare_against_gurobi(
     gurobi_results: GurobiResults,
     cutoff_threshold: Optional[float] = None,
 ) -> None:
+    """Plots a box-and-whisker plot of the new bounds against Gurobi's results.
+
+    You can use `cutoff_threshold` to exclude the neurons where the initial
+    bounds were already very close to the Gurobi-computed bounds.
+
+    Args:
+        new_L_list (List[Tensor]): New lower bounds.
+        new_U_list (List[Tensor]): New upper bounds.
+        unstable_masks (List[Tensor]): Masks of all the unstable neurons.
+        initial_L_list (List[Tensor]): Initial lower bounds.
+        initial_U_list (List[Tensor]): Initial upper bounds.
+        gurobi_results (GurobiResults): Gurobi's results.
+        cutoff_threshold (Optional[float], optional): If specified, excludes \
+            neurons whr initial-vs-Gurobi absolute-difference values are
+            <= `cutoff_threshold`. Defaults to None.
+    """
     # Ensure all tensors are on same device.
     device = torch.device("cpu")
     new_L_list = [L.to(device) for L in new_L_list]
@@ -104,6 +120,15 @@ def plot_box_and_whiskers(
     xlabel: str,
     ylabel: str,
 ) -> None:
+    """Plots multiple box-and-whisker diagrams in a single matplotlib plot.
+
+    Args:
+        values (List[List[Tensor]]): Values for each box-and-whisker diagram.
+        labels (List[str]): Labels for each box-and-whisker diagram.
+        title (str): Title of the plot.
+        xlabel (str): Label for the X-axis.
+        ylabel (str): Label for the Y-axis.
+    """
     concat_values: List[np.ndarray] = [torch.cat(x).numpy() for x in values]
 
     fig, ax = plt.subplots(figsize=(10, 6))

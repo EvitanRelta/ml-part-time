@@ -10,17 +10,32 @@ from .solver_layers.SolverSequential import SolverSequential
 
 class Solver(nn.Module):
     def __init__(self, inputs: SolverInputs):
+        """
+        Args:
+            inputs (SolverInputs): Inputs to solve for.
+        """
         super().__init__()
         self.sequential = SolverSequential(inputs)
         self.adv_check_model = AdversarialCheckModel(inputs.model, inputs.ground_truth_neuron_index)
 
     def reset_and_solve_for_layer(self, layer_index: int) -> None:
+        """Reset all parameters and set to solve for `layer_index`."""
         self.sequential.solve_for_layer(layer_index)
 
     def clamp_parameters(self):
+        """Clamps all learnable parameters to their values' domains.
+
+        Specifically:
+        - `gamma >= 0`
+        - `pi >= 0`
+        - `0 <= alpha <= 1`
+        """
         self.sequential.clamp_parameters()
 
     def forward(self) -> Tuple[Tensor, Tensor]:
+        """Returns the computed objective function (that needs to be maximised)
+        and theta values in the form: `(max_objective, theta)`.
+        """
         max_objective, theta = self.sequential.forward()
         self.last_max_objective = max_objective.detach()
         return max_objective, theta

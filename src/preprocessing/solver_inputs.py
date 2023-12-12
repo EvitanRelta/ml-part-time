@@ -11,7 +11,7 @@ from ..utils import load_onnx_model
 
 
 class SolverInputs:
-    """Contains and validates all the raw inputs needed to start solving."""
+    """Contains, formats and validates all the raw inputs needed to start solving."""
 
     def __init__(
         self,
@@ -91,6 +91,8 @@ class SolverInputs:
         return SolverInputs(model=model, **loaded)
 
     def _convert_hwc_to_chw(self) -> None:
+        """Converts the tensor inputs from Height-Width-Channel (HWC) format to
+        the Channel-Height-Width (CHW) format that Pytorch expects."""
         first_layer = next(self.model.children())
 
         if isinstance(first_layer, nn.Conv2d):

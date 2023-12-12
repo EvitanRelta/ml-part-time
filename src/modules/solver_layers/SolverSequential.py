@@ -13,6 +13,10 @@ from .output_layer import OutputLayer
 
 
 class SolverSequential(nn.ModuleList):
+    """A sequential module that sequantially passes the outputs from the solver
+    output-layer to the intermediate-layers then to the input-layer.
+    """
+
     def __init__(self, inputs: SolverInputs) -> None:
         self.layers = build(inputs)
         super().__init__(self.layers)
