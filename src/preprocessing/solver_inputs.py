@@ -1,10 +1,13 @@
 import math
-from typing import List
+from typing import List, Union
 
 import torch
+from numpy import ndarray
 from torch import Tensor, nn
 
+from ..inputs.save_file_types import SolverInputsSavedDict
 from ..preprocessing.hwc_to_chw import flatten_hwc_to_chw, flatten_unstable_hwc_to_chw
+from ..utils import load_onnx_model
 
 
 class SolverInputs:
@@ -14,32 +17,78 @@ class SolverInputs:
         self,
         model: nn.Module,
         ground_truth_neuron_index: int,
-        L_list: List[Tensor],
-        U_list: List[Tensor],
-        H: Tensor,
-        d: Tensor,
-        P_list: List[Tensor],
-        P_hat_list: List[Tensor],
-        p_list: List[Tensor],
+        L_list: Union[List[ndarray], List[Tensor]],
+        U_list: Union[List[ndarray], List[Tensor]],
+        H: Union[ndarray, Tensor],
+        d: Union[ndarray, Tensor],
+        P_list: Union[List[ndarray], List[Tensor]],
+        P_hat_list: Union[List[ndarray], List[Tensor]],
+        p_list: Union[List[ndarray], List[Tensor]],
+        is_hwc: bool = True,
         skip_validation: bool = False,
     ) -> None:
         self.model: nn.Module = model
         self.ground_truth_neuron_index: int = ground_truth_neuron_index
-        self.L_list: List[Tensor] = L_list
-        self.U_list: List[Tensor] = U_list
-        self.H: Tensor = H
-        self.d: Tensor = d
-        self.P_list: List[Tensor] = P_list
-        self.P_hat_list: List[Tensor] = P_hat_list
-        self.p_list: List[Tensor] = p_list
-        self.skip_validation: bool = skip_validation
 
-        self._convert_hwc_to_chw()
-        if self.skip_validation:
+        # Convert to tensor, float dtype, and correct dimensionality if necessary.
+        self.L_list: List[Tensor] = [
+            torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in L_list
+        ]
+        self.U_list: List[Tensor] = [
+            torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in U_list
+        ]
+        self.H: Tensor = torch.atleast_2d(ensure_tensor(H).float().squeeze())
+        self.d: Tensor = torch.atleast_1d(ensure_tensor(d).float().squeeze())
+        self.P_list: List[Tensor] = [
+            torch.atleast_2d(ensure_tensor(x).float().squeeze()) for x in P_list
+        ]
+        self.P_hat_list: List[Tensor] = [
+            torch.atleast_2d(ensure_tensor(x).float().squeeze()) for x in P_hat_list
+        ]
+        self.p_list: List[Tensor] = [
+            torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in p_list
+        ]
+
+        if is_hwc:
+            self._convert_hwc_to_chw()
+        if skip_validation:
             return
         self._validate_types()
         self._validate_tensor_dtype()
         self._validate_dimensions()
+
+    def save_all_except_model(self, save_file_path: str) -> None:
+        """Saves all the inputs except the model.
+
+        Args:
+            save_file_path (str): Path to save the inputs to.
+        """
+        saved_dict: SolverInputsSavedDict = {
+            "L_list": self.L_list,
+            "U_list": self.U_list,
+            "H": self.H,
+            "d": self.d,
+            "P_list": self.P_list,
+            "P_hat_list": self.P_hat_list,
+            "p_list": self.p_list,
+            "ground_truth_neuron_index": self.ground_truth_neuron_index,
+            "is_hwc": False,
+        }
+        torch.save(saved_dict, save_file_path)
+
+    @staticmethod
+    def load(onnx_model_path: str, other_inputs_path: str) -> "SolverInputs":
+        """Load ONNX model and the other inputs (saved in `SolverInputsSavedDict` format)
+        from their save files.
+
+        Args:
+            onnx_model_path (str): Path to ONNX model save file.
+            other_inputs_path (str): Path to the other inputs (saved in \
+                `SolverInputsSavedDict` format).
+        """
+        model: nn.Module = load_onnx_model(onnx_model_path)
+        loaded: SolverInputsSavedDict = torch.load(other_inputs_path)
+        return SolverInputs(model=model, **loaded)
 
     def _convert_hwc_to_chw(self) -> None:
         first_layer = next(self.model.children())
@@ -134,3 +183,12 @@ class SolverInputs:
             assert self.P_list[i].shape == self.P_hat_list[i].shape, f"Expected `P_list[{i}]` and `P_hat_list[{i}]` to be of same shape, but got {tuple(self.P_list[i].shape)} and {tuple(self.P_hat_list[i].shape)} respectively."
             assert self.p_list[i].size(0) == self.P_list[i].size(0), f"Expected len(p_list[{i}]) == len(P_list[{i}]), but got {self.p_list[i].size(0)} == {self.P_list[i].size(0)}."
         # fmt: on
+
+
+def ensure_tensor(array_or_tensor: Union[ndarray, Tensor]) -> Tensor:
+    """Converts `array_or_tensor` to a Pytorch Tensor if necessary."""
+    return (
+        torch.from_numpy(array_or_tensor)
+        if isinstance(array_or_tensor, ndarray)
+        else array_or_tensor
+    )

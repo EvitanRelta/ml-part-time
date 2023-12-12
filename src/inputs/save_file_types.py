@@ -1,6 +1,7 @@
 from typing import List, TypedDict
 
 from torch import Tensor
+from typing_extensions import NotRequired
 
 
 class GurobiResults(TypedDict):
@@ -18,3 +19,4 @@ class SolverInputsSavedDict(TypedDict):
     P_hat_list: List[Tensor]
     p_list: List[Tensor]
     ground_truth_neuron_index: int
+    is_hwc: NotRequired[bool]
