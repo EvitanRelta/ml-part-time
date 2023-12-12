@@ -1,5 +1,4 @@
 import math
-from dataclasses import dataclass
 from typing import List
 
 import torch
@@ -8,24 +7,34 @@ from torch import Tensor, nn
 from ..preprocessing.hwc_to_chw import flatten_hwc_to_chw, flatten_unstable_hwc_to_chw
 
 
-@dataclass
 class SolverInputs:
     """Contains and validates all the raw inputs needed to start solving."""
 
-    model: nn.Module
-    ground_truth_neuron_index: int
-    L_list: List[Tensor]
-    U_list: List[Tensor]
-    H: Tensor
-    d: Tensor
-    P_list: List[Tensor]
-    P_hat_list: List[Tensor]
-    p_list: List[Tensor]
-    skip_validation: bool = False
+    def __init__(
+        self,
+        model: nn.Module,
+        ground_truth_neuron_index: int,
+        L_list: List[Tensor],
+        U_list: List[Tensor],
+        H: Tensor,
+        d: Tensor,
+        P_list: List[Tensor],
+        P_hat_list: List[Tensor],
+        p_list: List[Tensor],
+        skip_validation: bool = False,
+    ) -> None:
+        self.model: nn.Module = model
+        self.ground_truth_neuron_index: int = ground_truth_neuron_index
+        self.L_list: List[Tensor] = L_list
+        self.U_list: List[Tensor] = U_list
+        self.H: Tensor = H
+        self.d: Tensor = d
+        self.P_list: List[Tensor] = P_list
+        self.P_hat_list: List[Tensor] = P_hat_list
+        self.p_list: List[Tensor] = p_list
+        self.skip_validation: bool = skip_validation
 
-    def __post_init__(self) -> None:
         self._convert_hwc_to_chw()
-
         if self.skip_validation:
             return
         self._validate_types()
