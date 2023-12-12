@@ -75,8 +75,8 @@ def compare_against_gurobi(
     ]
 
     if cutoff_threshold:
-        non_zero_L_mask: List[Tensor] = [(x > cutoff_threshold) for x in diff_L_list]
-        non_zero_U_mask: List[Tensor] = [(x > cutoff_threshold) for x in diff_U_list]
+        non_zero_L_mask: List[Tensor] = [(x.abs() > cutoff_threshold) for x in diff_L_list]
+        non_zero_U_mask: List[Tensor] = [(x.abs() > cutoff_threshold) for x in diff_U_list]
 
         diff_L_list = [diff_L_list[i][non_zero_L_mask[i]] for i in range(list_len)]
         diff_U_list = [diff_U_list[i][non_zero_U_mask[i]] for i in range(list_len)]
@@ -87,7 +87,11 @@ def compare_against_gurobi(
         [diff_L_list, diff_U_list, diff_new_L_list, diff_new_U_list],
         ["initial lower bounds", "initial upper bounds", "new lower bounds", "new upper bounds"],
         title="Difference between computed bounds vs Gurobi's"
-        + f"\n(excluding neurons whr initial-vs-Gurobi diff values <= {cutoff_threshold})",
+        + (
+            f"\n(excluding neurons whr initial-vs-Gurobi abs-diff values <= {cutoff_threshold})"
+            if cutoff_threshold is not None
+            else ""
+        ),
         xlabel="Differences",
         ylabel="Bounds",
     )
