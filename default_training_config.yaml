@@ -6,8 +6,8 @@
 # ==============================================================================
 #                        Optimizer & LR-scheduler configs
 # ==============================================================================
-# Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 2.
-max_lr: 2
+# Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 1.
+max_lr: 1
 
 # Min learning-rate to decay until.
 # The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-6.
@@ -30,8 +30,8 @@ reduce_lr_threshold: 1.0e-3
 #                             Early-stopping configs
 # ==============================================================================
 # Num. of epochs with no improvement, after which training should be stopped.
-# Defaults to 10.
-stop_patience: 10
+# Defaults to 40.
+stop_patience: 40
 
 # Threshold to determine whether there's "no improvement" for early-stopping.
 # No improvement is when `current_loss >= best_loss * (1 - threshold)`.

@@ -9,8 +9,8 @@ class TrainingConfig(YAMLWizard):
     # ==========================================================================
     #                      Optimizer & LR-scheduler configs
     # ==========================================================================
-    max_lr: float = 2
-    """Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 2."""
+    max_lr: float = 1
+    """Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 1."""
     min_lr: float = 1e-6
     """Min learning-rate to decay until.
     The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-6."""
@@ -27,9 +27,9 @@ class TrainingConfig(YAMLWizard):
     # ==========================================================================
     #                           Early-stopping configs
     # ==========================================================================
-    stop_patience: int = 10
+    stop_patience: int = 40
     """Num. of epochs with no improvement, after which training should be stopped.
-    Defaults to 10."""
+    Defaults to 40."""
     stop_threshold: float = 1e-3
     """Threshold to determine whether there's "no improvement" for early-stopping.
     No improvement is when `current_loss >= best_loss * (1 - threshold)`.
