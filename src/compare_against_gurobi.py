@@ -103,7 +103,7 @@ def plot_box_and_whiskers(
     concat_values: List[np.ndarray] = [torch.cat(x).numpy() for x in values]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.boxplot(concat_values, vert=False, labels=labels)
+    ax.boxplot(concat_values, vert=False, labels=labels)  # type: ignore
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)
