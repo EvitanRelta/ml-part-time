@@ -7,7 +7,7 @@ from torch import Tensor, nn
 from ..modules.solver_layers.base_class import SolverLayer
 from ..modules.solver_layers.SolverInput import InputLayer
 from ..modules.solver_layers.SolverIntermediate import IntermediateLayer
-from ..modules.solver_layers.SolverOutput import SolverOutput
+from ..modules.solver_layers.SolverOutput import OutputLayer
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import transpose_layer
@@ -39,7 +39,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
     assert isinstance(last_layer, nn.Linear)
     transposed_layer, bias_module, out_feat = transpose_layer(last_layer, last_layer.out_features)
 
-    output_layer = SolverOutput(
+    output_layer = OutputLayer(
         L=next(L_gen),
         U=next(U_gen),
         stably_act_mask=next(stably_act_mask_gen),
@@ -53,7 +53,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
     )
     solver_layers: List[SolverLayer] = [output_layer]
 
-    prev_layer: Union[SolverOutput, IntermediateLayer] = output_layer
+    prev_layer: Union[OutputLayer, IntermediateLayer] = output_layer
     prev_out_feat: int = out_feat
 
     while True:
@@ -117,7 +117,7 @@ def build_intermediate_layer(
     stably_deact_mask_gen: Iterator[Tensor],
     unstable_mask_gen: Iterator[Tensor],
     C_gen: Iterator[Tensor],
-    prev_layer: Union[IntermediateLayer, SolverOutput],
+    prev_layer: Union[IntermediateLayer, OutputLayer],
     prev_out_feat: int,
 ) -> Tuple[IntermediateLayer, int]:
     layer = next(layer_gen)

@@ -9,7 +9,7 @@ from ...preprocessing.transpose import UnaryForward
 from .base_class import SolverLayer
 
 
-class SolverOutput(SolverLayer):
+class OutputLayer(SolverLayer):
     @override
     def __init__(
         self,

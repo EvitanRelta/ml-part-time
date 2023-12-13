@@ -9,7 +9,7 @@ from ...preprocessing.solver_inputs import SolverInputs
 from .base_class import SolverLayer
 from .SolverInput import InputLayer
 from .SolverIntermediate import IntermediateLayer
-from .SolverOutput import SolverOutput
+from .SolverOutput import OutputLayer
 
 
 class SolverSequential(nn.ModuleList):
@@ -43,7 +43,7 @@ class SolverSequential(nn.ModuleList):
     @overload
     def __getitem__(self, i: Literal[0]) -> InputLayer: ...
     @overload
-    def __getitem__(self, i: Literal[-1]) -> SolverOutput: ...
+    def __getitem__(self, i: Literal[-1]) -> OutputLayer: ...
     @overload
     def __getitem__(self, i: int) -> IntermediateLayer: ...
     # fmt: on
