@@ -5,9 +5,9 @@ import pytest
 from torch import Tensor, nn
 
 from ..modules.solver_layers.base_class import SolverLayer
-from ..modules.solver_layers.SolverInput import InputLayer
-from ..modules.solver_layers.SolverIntermediate import IntermediateLayer
-from ..modules.solver_layers.SolverOutput import OutputLayer
+from ..modules.solver_layers.input_layer import InputLayer
+from ..modules.solver_layers.intermediate_layer import IntermediateLayer
+from ..modules.solver_layers.output_layer import OutputLayer
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import transpose_layer

@@ -7,9 +7,9 @@ from ...preprocessing import preprocessing_utils
 from ...preprocessing.build import build
 from ...preprocessing.solver_inputs import SolverInputs
 from .base_class import SolverLayer
-from .SolverInput import InputLayer
-from .SolverIntermediate import IntermediateLayer
-from .SolverOutput import OutputLayer
+from .input_layer import InputLayer
+from .intermediate_layer import IntermediateLayer
+from .output_layer import OutputLayer
 
 
 class SolverSequential(nn.ModuleList):
