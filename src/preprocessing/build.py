@@ -6,7 +6,7 @@ from torch import Tensor, nn
 
 from ..modules.solver_layers.base_class import SolverLayer
 from ..modules.solver_layers.SolverInput import InputLayer
-from ..modules.solver_layers.SolverIntermediate import SolverIntermediate
+from ..modules.solver_layers.SolverIntermediate import IntermediateLayer
 from ..modules.solver_layers.SolverOutput import SolverOutput
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
@@ -53,7 +53,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
     )
     solver_layers: List[SolverLayer] = [output_layer]
 
-    prev_layer: Union[SolverOutput, SolverIntermediate] = output_layer
+    prev_layer: Union[SolverOutput, IntermediateLayer] = output_layer
     prev_out_feat: int = out_feat
 
     while True:
@@ -117,16 +117,16 @@ def build_intermediate_layer(
     stably_deact_mask_gen: Iterator[Tensor],
     unstable_mask_gen: Iterator[Tensor],
     C_gen: Iterator[Tensor],
-    prev_layer: Union[SolverIntermediate, SolverOutput],
+    prev_layer: Union[IntermediateLayer, SolverOutput],
     prev_out_feat: int,
-) -> Tuple[SolverIntermediate, int]:
+) -> Tuple[IntermediateLayer, int]:
     layer = next(layer_gen)
     while not isinstance(layer, nn.Linear) and not isinstance(layer, nn.Conv2d):
         layer = next(layer_gen)
 
     transposed_layer, bias_module, out_feat = transpose_layer(layer, prev_out_feat)
     return (
-        SolverIntermediate(
+        IntermediateLayer(
             L=next(L_gen),
             U=next(U_gen),
             stably_act_mask=next(stably_act_mask_gen),

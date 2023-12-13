@@ -10,7 +10,7 @@ from ..solver_utils import bracket_minus, bracket_plus
 from .base_class import SolverLayer
 
 
-class SolverIntermediate(SolverLayer):
+class IntermediateLayer(SolverLayer):
     @override
     def __init__(
         self,
