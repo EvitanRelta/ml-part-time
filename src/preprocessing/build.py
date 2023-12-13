@@ -5,7 +5,7 @@ import pytest
 from torch import Tensor, nn
 
 from ..modules.solver_layers.base_class import SolverLayer
-from ..modules.solver_layers.SolverInput import SolverInput
+from ..modules.solver_layers.SolverInput import InputLayer
 from ..modules.solver_layers.SolverIntermediate import SolverIntermediate
 from ..modules.solver_layers.SolverOutput import SolverOutput
 from . import preprocessing_utils
@@ -77,7 +77,7 @@ def build(inputs: SolverInputs) -> List[SolverLayer]:
             break
 
     solver_layers.append(
-        SolverInput(
+        InputLayer(
             L=next(L_gen),
             U=next(U_gen),
             stably_act_mask=next(stably_act_mask_gen),
