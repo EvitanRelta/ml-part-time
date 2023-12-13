@@ -38,11 +38,11 @@ class TrainingConfig(YAMLWizard):
     # ==========================================================================
     #                                Misc. configs
     # ==========================================================================
-    run_adv_check: bool = True
-    """Whether to run the adversarial check. Defaults to True."""
+    disable_adv_check: bool = False
+    """Whether to disable the adversarial check. Defaults to False."""
     num_epoch_adv_check: int = 10
     """Perform adversarial check every `num_epoch_adv_check` epochs. Only has an effect when
-    `run_adv_check=True`. Defaults to 10."""
+    `disable_adv_check=False`. Defaults to 10."""
     disable_progress_bar: bool = False
     """Whether to disable tqdm's progress bar during training. Defaults to False."""
 
