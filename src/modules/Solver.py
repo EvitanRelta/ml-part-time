@@ -30,8 +30,8 @@ class Solver(nn.Module):
         assert self.sequential.solve_coords[0][0] == layer_index
 
         # Clone the tensors to avoid modifying the original tensors
-        new_L: Tensor = self.sequential.L_list[layer_index].clone().detach()
-        new_U: Tensor = self.sequential.U_list[layer_index].clone().detach()
+        new_L: Tensor = self.sequential[layer_index].L.clone().detach()
+        new_U: Tensor = self.sequential[layer_index].U.clone().detach()
 
         # Iterate over the solve_coords
         for i, (_, coord) in enumerate(self.sequential.solve_coords):

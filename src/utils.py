@@ -28,7 +28,7 @@ def set_abs_path_to(current_dir: str) -> Callable[[str], str]:
 def seed_everything(seed: int) -> None:
     """Seeds `random`, `numpy`, `torch` with `seed` and makes computation deterministic."""
     random.seed(seed)
-    np.random.seed(seed)
+    np.random.seed(seed)  # type: ignore
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
