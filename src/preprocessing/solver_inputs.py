@@ -6,7 +6,10 @@ from numpy import ndarray
 from torch import Tensor, nn
 
 from ..inputs.save_file_types import SolverInputsSavedDict
-from ..preprocessing.hwc_to_chw import flatten_hwc_to_chw, flatten_unstable_hwc_to_chw
+from ..preprocessing.hwc_to_chw import (
+    flattened_hwc_to_chw,
+    flattened_unstable_hwc_to_chw,
+)
 from ..utils import load_onnx_model
 
 
@@ -106,8 +109,8 @@ class SolverInputs:
             H_W = int(math.sqrt(num_neurons / num_channels))
             hwc_shape = (H_W, H_W, num_channels)
 
-            self.L_list[0] = flatten_hwc_to_chw(self.L_list[0], hwc_shape)
-            self.U_list[0] = flatten_hwc_to_chw(self.U_list[0], hwc_shape)
+            self.L_list[0] = flattened_hwc_to_chw(self.L_list[0], hwc_shape)
+            self.U_list[0] = flattened_hwc_to_chw(self.U_list[0], hwc_shape)
 
         i = 1
         for layer in self.model.children():
@@ -125,20 +128,20 @@ class SolverInputs:
             hwc_shape = (H_W, H_W, num_channels)
 
             unstable_mask = (self.L_list[i] < 0) & (self.U_list[i] > 0)
-            self.L_list[i] = flatten_hwc_to_chw(self.L_list[i], hwc_shape)
-            self.U_list[i] = flatten_hwc_to_chw(self.U_list[i], hwc_shape)
+            self.L_list[i] = flattened_hwc_to_chw(self.L_list[i], hwc_shape)
+            self.U_list[i] = flattened_hwc_to_chw(self.U_list[i], hwc_shape)
 
             is_last_layer = i >= len(self.P_list) + 1
             if is_last_layer:
                 continue
 
-            self.P_list[i - 1] = flatten_unstable_hwc_to_chw(
+            self.P_list[i - 1] = flattened_unstable_hwc_to_chw(
                 self.P_list[i - 1],
                 unstable_mask,
                 hwc_shape,
                 mask_dim=1,
             )
-            self.P_hat_list[i - 1] = flatten_unstable_hwc_to_chw(
+            self.P_hat_list[i - 1] = flattened_unstable_hwc_to_chw(
                 self.P_hat_list[i - 1],
                 unstable_mask,
                 hwc_shape,

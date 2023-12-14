@@ -8,7 +8,7 @@ from typing_extensions import TypeAlias
 CNNShape: TypeAlias = Union[Tuple[int, int, int], torch.Size]
 
 
-def flatten_hwc_to_chw(X: Tensor, hwc_shape: CNNShape, permute_on_dim=0) -> Tensor:
+def flattened_hwc_to_chw(X: Tensor, hwc_shape: CNNShape, permute_on_dim=0) -> Tensor:
     """Takes in a flattened CNN input (or a batch of them) in the
     Height-Width-Channel (HWC) format, then unflattens it back to HWC, converts
     it to Channel-Height-Width (CHW) format, and then re-flattens it.
@@ -48,7 +48,7 @@ def flatten_hwc_to_chw(X: Tensor, hwc_shape: CNNShape, permute_on_dim=0) -> Tens
     raise NotImplementedError()
 
 
-def flatten_unstable_hwc_to_chw(
+def flattened_unstable_hwc_to_chw(
     unstable_only: Tensor,
     hwc_unstable_mask: Tensor,
     hwc_shape: CNNShape,
@@ -87,6 +87,6 @@ def flatten_unstable_hwc_to_chw(
     dtype = unstable_only.dtype
     full_tensor = torch.full(full_tensor_shape, torch.finfo(dtype).max, dtype=dtype)
     full_tensor[hwc_unstable_mask.expand(full_tensor_shape)] = unstable_only.flatten()
-    permuted_full = flatten_hwc_to_chw(full_tensor, hwc_shape, permute_on_dim=mask_dim)
-    permuted_mask = flatten_hwc_to_chw(hwc_unstable_mask, hwc_shape, permute_on_dim=mask_dim)
+    permuted_full = flattened_hwc_to_chw(full_tensor, hwc_shape, permute_on_dim=mask_dim)
+    permuted_mask = flattened_hwc_to_chw(hwc_unstable_mask, hwc_shape, permute_on_dim=mask_dim)
     return permuted_full[permuted_mask.expand(full_tensor_shape)].reshape(unstable_only.shape)
