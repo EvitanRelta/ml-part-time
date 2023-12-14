@@ -5,7 +5,7 @@ import torch
 from numpy import ndarray
 from torch import Tensor, nn
 
-from ..inputs.save_file_types import SolverInputsSavedDict
+from ..inputs.save_file_types import GurobiResults, SolverInputsSavedDict
 from ..preprocessing.hwc_to_chw import (
     flattened_hwc_to_chw,
     flattened_unstable_hwc_to_chw,
@@ -92,6 +92,64 @@ class SolverInputs:
         model: nn.Module = load_onnx_model(onnx_model_path)
         loaded: SolverInputsSavedDict = torch.load(other_inputs_path)
         return SolverInputs(model=model, **loaded)
+
+    def convert_gurobi_hwc_to_chw(
+        self,
+        gurobi_results: GurobiResults,
+        hwc_L_list: List[Tensor],
+        hwc_U_list: List[Tensor],
+    ) -> GurobiResults:
+        hwc_unstable_masks = [(L < 0) & (U > 0) for L, U in zip(hwc_L_list, hwc_U_list)]
+
+        gurobi_L_list = list(gurobi_results["L_list_unstable_only"])
+        gurobi_U_list = list(gurobi_results["U_list_unstable_only"])
+
+        first_layer = next(self.model.children())
+
+        if isinstance(first_layer, nn.Conv2d):
+            num_neurons = self.L_list[0].size(0)
+            num_channels = first_layer.in_channels
+
+            # Assume that `height == width` for the CNN input.
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            gurobi_L_list[0] = flattened_hwc_to_chw(gurobi_L_list[0], hwc_shape)
+            gurobi_U_list[0] = flattened_hwc_to_chw(gurobi_U_list[0], hwc_shape)
+
+        i = 1
+        for layer in self.model.children():
+            if isinstance(layer, nn.Linear):
+                i += 1
+                continue
+            if not isinstance(layer, nn.Conv2d):
+                continue
+
+            num_neurons = self.L_list[i].size(0)
+            num_channels = layer.out_channels
+
+            # Assumes that `height == width` for all CNN inputs.
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            gurobi_L_list[i] = flattened_unstable_hwc_to_chw(
+                gurobi_L_list[i],
+                hwc_unstable_masks[i],
+                hwc_shape,
+            )
+
+            gurobi_U_list[i] = flattened_unstable_hwc_to_chw(
+                gurobi_U_list[i],
+                hwc_unstable_masks[i],
+                hwc_shape,
+            )
+            i += 1
+
+        return {
+            "L_list_unstable_only": gurobi_L_list,
+            "U_list_unstable_only": gurobi_U_list,
+            "compute_time": gurobi_results["compute_time"],
+        }
 
     def _convert_hwc_to_chw(self) -> None:
         """Converts the tensor inputs from Height-Width-Channel (HWC) format to

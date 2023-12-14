@@ -19,4 +19,10 @@ model_wo_norm = nn.Sequential(*list(model.children())[4:])
 
 loaded: SolverInputsSavedDict = torch.load(OTHER_INPUTS_PATH)
 solver_inputs = SolverInputs(model_wo_norm, **loaded)
+
 gurobi_results: GurobiResults = torch.load(GUROBI_RESULTS_PATH)
+gurobi_results = solver_inputs.convert_gurobi_hwc_to_chw(
+    gurobi_results,
+    hwc_L_list=loaded["L_list"],
+    hwc_U_list=loaded["U_list"],
+)
