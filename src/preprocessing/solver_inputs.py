@@ -92,12 +92,17 @@ class SolverInputs:
 
     def _convert_hwc_to_chw(self) -> None:
         """Converts the tensor inputs from Height-Width-Channel (HWC) format to
-        the Channel-Height-Width (CHW) format that Pytorch expects."""
+        the Channel-Height-Width (CHW) format that Pytorch expects.
+
+        Warning: Assumes that `height == width` for all CNN inputs.
+        """
         first_layer = next(self.model.children())
 
         if isinstance(first_layer, nn.Conv2d):
             num_neurons = self.L_list[0].size(0)
             num_channels = first_layer.in_channels
+
+            # Assume that `height == width` for the CNN input.
             H_W = int(math.sqrt(num_neurons / num_channels))
             hwc_shape = (H_W, H_W, num_channels)
 
@@ -114,6 +119,8 @@ class SolverInputs:
 
             num_neurons = self.L_list[i].size(0)
             num_channels = layer.out_channels
+
+            # Assumes that `height == width` for all CNN inputs.
             H_W = int(math.sqrt(num_neurons / num_channels))
             hwc_shape = (H_W, H_W, num_channels)
 

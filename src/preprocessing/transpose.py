@@ -50,6 +50,8 @@ def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Bias, int]:
 
 def transpose_conv2d(conv2d: nn.Conv2d, conv2d_total_output: int) -> Tuple[UnaryForward, Bias, int]:
     num_channels = conv2d.out_channels
+
+    # Assume that `height == width` for the CNN input.
     H_W = int(math.sqrt(conv2d_total_output / num_channels))
     conv2d_output_shape = (num_channels, H_W, H_W)
 
