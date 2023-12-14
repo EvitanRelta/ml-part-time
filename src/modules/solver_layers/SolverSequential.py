@@ -22,7 +22,7 @@ class SolverSequential(nn.ModuleList):
             layer_index, self.unstable_masks
         )
         for i in range(len(self)):
-            self[i].set_C_and_reset(C_list[i])
+            self[i].set_C_and_reset_parameters(C_list[i])
 
     def forward(self) -> Tuple[Tensor, Tensor]:
         x = ()

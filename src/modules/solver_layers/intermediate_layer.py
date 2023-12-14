@@ -40,8 +40,8 @@ class IntermediateLayer(SolverLayer):
         self.register_buffer("p", p)
 
     @override
-    def set_C_and_reset(self, C: Tensor) -> None:
-        super().set_C_and_reset(C)
+    def set_C_and_reset_parameters(self, C: Tensor) -> None:
+        super().set_C_and_reset_parameters(C)
         self.pi: nn.Parameter = nn.Parameter(torch.rand((self.num_batches, self.P.size(0))).to(C))
         self.alpha: nn.Parameter = nn.Parameter(
             torch.rand((self.num_batches, self.num_unstable)).to(C)

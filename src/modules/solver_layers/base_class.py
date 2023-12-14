@@ -29,7 +29,7 @@ class SolverLayer(ABC, nn.Module):
         self.register_buffer("unstable_mask", unstable_mask)
         self.register_buffer("C", C)
 
-    def set_C_and_reset(self, C: Tensor) -> None:
+    def set_C_and_reset_parameters(self, C: Tensor) -> None:
         self.register_buffer("C", C)
 
     @property
