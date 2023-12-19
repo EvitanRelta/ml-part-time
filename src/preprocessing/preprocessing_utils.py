@@ -20,7 +20,7 @@ def get_masks(
     num_layers = len(U_list)
     stably_act_masks: List[Tensor] = [L >= 0 for L in L_list]
     stably_deact_masks: List[Tensor] = [U <= 0 for U in U_list]
-    unstable_masks: List[Tensor] = [(L_list[i] < 0) & (U_list[i] > 0) for i in range(num_layers)]
+    unstable_masks: List[Tensor] = [(L < 0) & (U > 0) for L, U in zip(L_list, U_list)]
     for i in range(num_layers):
         assert torch.all((stably_act_masks[i] + stably_deact_masks[i] + unstable_masks[i]) == 1)
 
