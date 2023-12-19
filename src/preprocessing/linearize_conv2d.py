@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Literal, Tuple, Union
 
 import torch
 from torch import Tensor, nn
@@ -99,6 +99,7 @@ def conv2d_to_matrices(
 def compute_conv2d_output_shape(
     conv2d: nn.Conv2d,
     input_shape: Tuple[int, int, int],
+    format: Literal["CHW", "HWC"] = "CHW",
 ) -> Tuple[int, int, int]:
     """Calculate the output shape of a Conv2d layer given its configuration and input shape.
 
@@ -106,11 +107,16 @@ def compute_conv2d_output_shape(
         conv2d (nn.Conv2d): The 2D CNN layer.
         input_shape (Tuple[int, int, int]): Shape of the input tensor in the form: \
             `(num_channels, height, width)`.
+        format (Literal["CHW", "HWC"], optional): Format of `input_shape` and of \
+            the returned output. Defaults to "CHW".
 
     Returns:
         Tuple[int, int, int]: Output tensor shape in the form: \
-            `(num_channels, height, width)`.
+            `(num_channels, height, width)` for `format="CHW"`, or \
+            `(height, width, num_channels)` for `format="HWC"`.
     """
+    assert format in ("CHW", "HWC")
+
     # Extract parameters from the conv2d layer
     kernel_size = conv2d.kernel_size
     stride = conv2d.stride
@@ -118,8 +124,11 @@ def compute_conv2d_output_shape(
     dilation = conv2d.dilation
     assert isinstance(padding, Tuple)
 
-    # Extract input dimensions (ignoring the batch size and channel)
-    *_, input_height, input_width = input_shape
+    # Extract input dimensions (ignoring channel size)
+    if format == "CHW":
+        _, input_height, input_width = input_shape
+    else:
+        input_height, input_width, _ = input_shape
 
     # Calculate the output dimensions based on the equation in PyTorch's Conv2d's docs.
     output_height = (
@@ -129,5 +138,6 @@ def compute_conv2d_output_shape(
         (input_width + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) // stride[1]
     ) + 1
 
-    # Return the output shape
-    return (conv2d.out_channels, output_height, output_width)
+    if format == "CHW":
+        return (conv2d.out_channels, output_height, output_width)
+    return (output_height, output_width, conv2d.out_channels)
