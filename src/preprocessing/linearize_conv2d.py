@@ -115,14 +115,19 @@ def compute_conv2d_output_shape(
     kernel_size = conv2d.kernel_size
     stride = conv2d.stride
     padding = conv2d.padding
+    dilation = conv2d.dilation
     assert isinstance(padding, Tuple)
 
     # Extract input dimensions (ignoring the batch size and channel)
     *_, input_height, input_width = input_shape
 
-    # Calculate the output dimensions
-    output_height = ((input_height + 2 * padding[0] - kernel_size[0]) // stride[0]) + 1
-    output_width = ((input_width + 2 * padding[1] - kernel_size[1]) // stride[1]) + 1
+    # Calculate the output dimensions based on the equation in PyTorch's Conv2d's docs.
+    output_height = (
+        (input_height + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) // stride[0]
+    ) + 1
+    output_width = (
+        (input_width + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) // stride[1]
+    ) + 1
 
     # Return the output shape
     return (conv2d.out_channels, output_height, output_width)
