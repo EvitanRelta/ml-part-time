@@ -6,7 +6,7 @@ import numpy as np
 import onnx
 import onnx2torch
 import torch
-from torch import nn
+from torch.fx.graph_module import GraphModule
 
 
 def set_abs_path_to(current_dir: str) -> Callable[[str], str]:
@@ -33,6 +33,6 @@ def seed_everything(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
 
 
-def load_onnx_model(onnx_file_path: str) -> nn.Module:
+def load_onnx_model(onnx_file_path: str) -> GraphModule:
     onnx_model = onnx.load(onnx_file_path)
     return onnx2torch.convert(onnx_model)
