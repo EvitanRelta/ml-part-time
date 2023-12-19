@@ -1,4 +1,5 @@
 import os
+import sys
 
 import torch
 
@@ -23,9 +24,9 @@ is_falsified, new_L_list, new_U_list, solver = solve(
 
 if is_falsified:
     print("Verification problem is falsified.")
-    exit(0)
+    sys.exit(0)
 
-unstable_masks = solver.vars.unstable_masks
+unstable_masks = solver.sequential.unstable_masks
 
 compare_against_gurobi(
     new_L_list=[torch.from_numpy(x) for x in new_L_list],

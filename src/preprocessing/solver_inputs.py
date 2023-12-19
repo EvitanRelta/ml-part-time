@@ -1,32 +1,212 @@
-from dataclasses import dataclass
-from typing import List
+import math
+from typing import List, Union
 
 import torch
+from numpy import ndarray
 from torch import Tensor, nn
 
+from ..inputs.save_file_types import GurobiResults, SolverInputsSavedDict
+from ..preprocessing.hwc_to_chw import (
+    flattened_hwc_to_chw,
+    flattened_unstable_hwc_to_chw,
+)
+from ..utils import load_onnx_model
 
-@dataclass
+
 class SolverInputs:
-    """Contains and validates all the raw inputs needed to start solving."""
+    """Contains, formats and validates all the raw inputs needed to start solving."""
 
-    model: nn.Module
-    ground_truth_neuron_index: int
-    L_list: List[Tensor]
-    U_list: List[Tensor]
-    H: Tensor
-    d: Tensor
-    P_list: List[Tensor]
-    P_hat_list: List[Tensor]
-    p_list: List[Tensor]
-    skip_validation: bool = False
+    def __init__(
+        self,
+        model: nn.Module,
+        ground_truth_neuron_index: int,
+        L_list: Union[List[ndarray], List[Tensor]],
+        U_list: Union[List[ndarray], List[Tensor]],
+        H: Union[ndarray, Tensor],
+        d: Union[ndarray, Tensor],
+        P_list: Union[List[ndarray], List[Tensor]],
+        P_hat_list: Union[List[ndarray], List[Tensor]],
+        p_list: Union[List[ndarray], List[Tensor]],
+        is_hwc: bool = True,
+        skip_validation: bool = False,
+    ) -> None:
+        self.model: nn.Module = model
+        self.ground_truth_neuron_index: int = ground_truth_neuron_index
 
-    def __post_init__(self) -> None:
-        if self.skip_validation:
+        # Convert to tensor, float dtype, and correct dimensionality if necessary.
+        self.L_list: List[Tensor] = [
+            torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in L_list
+        ]
+        self.U_list: List[Tensor] = [
+            torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in U_list
+        ]
+        self.H: Tensor = torch.atleast_2d(ensure_tensor(H).float().squeeze())
+        self.d: Tensor = torch.atleast_1d(ensure_tensor(d).float().squeeze())
+        self.P_list: List[Tensor] = [
+            torch.atleast_2d(ensure_tensor(x).float().squeeze()) for x in P_list
+        ]
+        self.P_hat_list: List[Tensor] = [
+            torch.atleast_2d(ensure_tensor(x).float().squeeze()) for x in P_hat_list
+        ]
+        self.p_list: List[Tensor] = [
+            torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in p_list
+        ]
+
+        if is_hwc:
+            self._convert_hwc_to_chw()
+        if skip_validation:
             return
         self._validate_types()
         self._validate_tensor_dtype()
         self._validate_dimensions()
-        self._validate_tensors_match_model()
+
+    def save_all_except_model(self, save_file_path: str) -> None:
+        """Saves all the inputs except the model.
+
+        Args:
+            save_file_path (str): Path to save the inputs to.
+        """
+        saved_dict: SolverInputsSavedDict = {
+            "L_list": self.L_list,
+            "U_list": self.U_list,
+            "H": self.H,
+            "d": self.d,
+            "P_list": self.P_list,
+            "P_hat_list": self.P_hat_list,
+            "p_list": self.p_list,
+            "ground_truth_neuron_index": self.ground_truth_neuron_index,
+            "is_hwc": False,
+        }
+        torch.save(saved_dict, save_file_path)
+
+    @staticmethod
+    def load(onnx_model_path: str, other_inputs_path: str) -> "SolverInputs":
+        """Load ONNX model and the other inputs (saved in `SolverInputsSavedDict` format)
+        from their save files.
+
+        Args:
+            onnx_model_path (str): Path to ONNX model save file.
+            other_inputs_path (str): Path to the other inputs (saved in \
+                `SolverInputsSavedDict` format).
+        """
+        model: nn.Module = load_onnx_model(onnx_model_path)
+        loaded: SolverInputsSavedDict = torch.load(other_inputs_path)
+        return SolverInputs(model=model, **loaded)
+
+    def convert_gurobi_hwc_to_chw(
+        self,
+        gurobi_results: GurobiResults,
+        hwc_L_list: List[Tensor],
+        hwc_U_list: List[Tensor],
+    ) -> GurobiResults:
+        hwc_unstable_masks = [(L < 0) & (U > 0) for L, U in zip(hwc_L_list, hwc_U_list)]
+
+        gurobi_L_list = list(gurobi_results["L_list_unstable_only"])
+        gurobi_U_list = list(gurobi_results["U_list_unstable_only"])
+
+        first_layer = next(self.model.children())
+
+        if isinstance(first_layer, nn.Conv2d):
+            num_neurons = self.L_list[0].size(0)
+            num_channels = first_layer.in_channels
+
+            # Assume that `height == width` for the CNN input.
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            gurobi_L_list[0] = flattened_hwc_to_chw(gurobi_L_list[0], hwc_shape)
+            gurobi_U_list[0] = flattened_hwc_to_chw(gurobi_U_list[0], hwc_shape)
+
+        i = 1
+        for layer in self.model.children():
+            if isinstance(layer, nn.Linear):
+                i += 1
+                continue
+            if not isinstance(layer, nn.Conv2d):
+                continue
+
+            num_neurons = self.L_list[i].size(0)
+            num_channels = layer.out_channels
+
+            # Assumes that `height == width` for all CNN inputs.
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            gurobi_L_list[i] = flattened_unstable_hwc_to_chw(
+                gurobi_L_list[i],
+                hwc_unstable_masks[i],
+                hwc_shape,
+            )
+
+            gurobi_U_list[i] = flattened_unstable_hwc_to_chw(
+                gurobi_U_list[i],
+                hwc_unstable_masks[i],
+                hwc_shape,
+            )
+            i += 1
+
+        return {
+            "L_list_unstable_only": gurobi_L_list,
+            "U_list_unstable_only": gurobi_U_list,
+            "compute_time": gurobi_results["compute_time"],
+        }
+
+    def _convert_hwc_to_chw(self) -> None:
+        """Converts the tensor inputs from Height-Width-Channel (HWC) format to
+        the Channel-Height-Width (CHW) format that Pytorch expects.
+
+        Warning: Assumes that `height == width` for all CNN inputs.
+        """
+        first_layer = next(self.model.children())
+
+        if isinstance(first_layer, nn.Conv2d):
+            num_neurons = self.L_list[0].size(0)
+            num_channels = first_layer.in_channels
+
+            # Assume that `height == width` for the CNN input.
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            self.L_list[0] = flattened_hwc_to_chw(self.L_list[0], hwc_shape)
+            self.U_list[0] = flattened_hwc_to_chw(self.U_list[0], hwc_shape)
+
+        i = 1
+        for layer in self.model.children():
+            if isinstance(layer, nn.Linear):
+                i += 1
+                continue
+            if not isinstance(layer, nn.Conv2d):
+                continue
+
+            num_neurons = self.L_list[i].size(0)
+            num_channels = layer.out_channels
+
+            # Assumes that `height == width` for all CNN inputs.
+            H_W = int(math.sqrt(num_neurons / num_channels))
+            hwc_shape = (H_W, H_W, num_channels)
+
+            unstable_mask = (self.L_list[i] < 0) & (self.U_list[i] > 0)
+            self.L_list[i] = flattened_hwc_to_chw(self.L_list[i], hwc_shape)
+            self.U_list[i] = flattened_hwc_to_chw(self.U_list[i], hwc_shape)
+
+            is_last_layer = i >= len(self.P_list) + 1
+            if is_last_layer:
+                continue
+
+            self.P_list[i - 1] = flattened_unstable_hwc_to_chw(
+                self.P_list[i - 1],
+                unstable_mask,
+                hwc_shape,
+                mask_dim=1,
+            )
+            self.P_hat_list[i - 1] = flattened_unstable_hwc_to_chw(
+                self.P_hat_list[i - 1],
+                unstable_mask,
+                hwc_shape,
+                mask_dim=1,
+            )
+            i += 1
+            continue
 
     def _validate_types(self) -> None:
         assert isinstance(self.model, nn.Module)
@@ -74,33 +254,11 @@ class SolverInputs:
             assert self.p_list[i].size(0) == self.P_list[i].size(0), f"Expected len(p_list[{i}]) == len(P_list[{i}]), but got {self.p_list[i].size(0)} == {self.P_list[i].size(0)}."
         # fmt: on
 
-    def _validate_tensors_match_model(self) -> None:
-        linear_layers = [layer for layer in self.model.children() if isinstance(layer, nn.Linear)]
-        num_layers = len(linear_layers) + 1  # +1 to include input layer.
-        num_neurons_per_layer: List[int] = [linear_layers[0].weight.size(1)] + [
-            linear.weight.size(0) for linear in linear_layers
-        ]
-        # fmt: off
-        assert num_layers == len(num_neurons_per_layer), "This shouldn't happen."
-        assert 0 <= self.ground_truth_neuron_index < num_neurons_per_layer[-1], f"Expected 0 <= ground_truth_neuron_index < {num_neurons_per_layer[-1]}, but got {self.ground_truth_neuron_index} ({num_neurons_per_layer[-1]} is the num of neurons in the output layer)."
-        assert len(self.L_list) == len(self.U_list) == num_layers, f"Expected len(L_list) == len(U_list) == num of linear layers in `model` + 1, but got {len(self.L_list)} == {len(self.U_list)} == {num_layers}."
-        # fmt: on
-        for i in range(num_layers):
-            assert self.L_list[i].size(0) == self.U_list[i].size(0) == num_neurons_per_layer[i]
 
-        unstable_masks = [(self.L_list[i] < 0) & (self.U_list[i] > 0) for i in range(num_layers)]
-        num_unstable_per_layer: List[int] = [int(mask.sum().item()) for mask in unstable_masks]
-        num_unstable_per_intermediate_layer = num_unstable_per_layer[1:-1]
-        num_intermediate_layers = num_layers - 2
-
-        # fmt: off
-        ith = lambda i: "1st" if i == 1 \
-            else "2nd" if i == 2 \
-            else "3rd" if i == 3 \
-            else f"{i}th"
-        assert len(self.P_list) == len(self.P_hat_list) == len(self.p_list) == num_intermediate_layers, f"Expected len(P_list) == len(P_hat_list) == len(p_list) == num of intermediate layers, but got {len(self.P_list)} == {len(self.P_hat_list)} == {len(self.p_list)}."
-        for i in range(num_intermediate_layers):
-            assert self.P_list[i].size(1) == num_unstable_per_intermediate_layer[i], f"Expected P_list[{i}].size(1) == {num_unstable_per_intermediate_layer[i]}, but got {self.P_list[i].size(1)} ({num_unstable_per_intermediate_layer[i]} is the num of unstable neurons in the {ith(i)} intermediate layer)."
-        # fmt: on
-
-        assert self.H.size(1) == linear_layers[-1].weight.size(0)
+def ensure_tensor(array_or_tensor: Union[ndarray, Tensor]) -> Tensor:
+    """Converts `array_or_tensor` to a Pytorch Tensor if necessary."""
+    return (
+        torch.from_numpy(array_or_tensor)
+        if isinstance(array_or_tensor, ndarray)
+        else array_or_tensor
+    )

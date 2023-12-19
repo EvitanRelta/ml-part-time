@@ -17,6 +17,22 @@ def compare_against_gurobi(
     gurobi_results: GurobiResults,
     cutoff_threshold: Optional[float] = None,
 ) -> None:
+    """Plots a box-and-whisker plot of the new bounds against Gurobi's results.
+
+    You can use `cutoff_threshold` to exclude the neurons where the initial
+    bounds were already very close to the Gurobi-computed bounds.
+
+    Args:
+        new_L_list (List[Tensor]): New lower bounds.
+        new_U_list (List[Tensor]): New upper bounds.
+        unstable_masks (List[Tensor]): Masks of all the unstable neurons.
+        initial_L_list (List[Tensor]): Initial lower bounds.
+        initial_U_list (List[Tensor]): Initial upper bounds.
+        gurobi_results (GurobiResults): Gurobi's results.
+        cutoff_threshold (Optional[float], optional): If specified, excludes \
+            neurons whr initial-vs-Gurobi absolute-difference values are
+            <= `cutoff_threshold`. Defaults to None.
+    """
     # Ensure all tensors are on same device.
     device = torch.device("cpu")
     new_L_list = [L.to(device) for L in new_L_list]
@@ -75,8 +91,8 @@ def compare_against_gurobi(
     ]
 
     if cutoff_threshold:
-        non_zero_L_mask: List[Tensor] = [(x > cutoff_threshold) for x in diff_L_list]
-        non_zero_U_mask: List[Tensor] = [(x > cutoff_threshold) for x in diff_U_list]
+        non_zero_L_mask: List[Tensor] = [(x.abs() > cutoff_threshold) for x in diff_L_list]
+        non_zero_U_mask: List[Tensor] = [(x.abs() > cutoff_threshold) for x in diff_U_list]
 
         diff_L_list = [diff_L_list[i][non_zero_L_mask[i]] for i in range(list_len)]
         diff_U_list = [diff_U_list[i][non_zero_U_mask[i]] for i in range(list_len)]
@@ -87,7 +103,11 @@ def compare_against_gurobi(
         [diff_L_list, diff_U_list, diff_new_L_list, diff_new_U_list],
         ["initial lower bounds", "initial upper bounds", "new lower bounds", "new upper bounds"],
         title="Difference between computed bounds vs Gurobi's"
-        + f"\n(excluding neurons whr initial-vs-Gurobi diff values <= {cutoff_threshold})",
+        + (
+            f"\n(excluding neurons whr initial-vs-Gurobi abs-diff values <= {cutoff_threshold})"
+            if cutoff_threshold is not None
+            else ""
+        ),
         xlabel="Differences",
         ylabel="Bounds",
     )
@@ -100,10 +120,19 @@ def plot_box_and_whiskers(
     xlabel: str,
     ylabel: str,
 ) -> None:
+    """Plots multiple box-and-whisker diagrams in a single matplotlib plot.
+
+    Args:
+        values (List[List[Tensor]]): Values for each box-and-whisker diagram.
+        labels (List[str]): Labels for each box-and-whisker diagram.
+        title (str): Title of the plot.
+        xlabel (str): Label for the X-axis.
+        ylabel (str): Label for the Y-axis.
+    """
     concat_values: List[np.ndarray] = [torch.cat(x).numpy() for x in values]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.boxplot(concat_values, vert=False, labels=labels)
+    ax.boxplot(concat_values, vert=False, labels=labels)  # type: ignore
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)

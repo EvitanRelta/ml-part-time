@@ -4,6 +4,40 @@ import torch
 from torch import Tensor, nn
 
 
+def linearize_conv2d(
+    conv2d: nn.Conv2d,
+    input_shape: Union[Tuple[int, int, int], torch.Size],
+) -> nn.Linear:
+    """Convert a Pytorch `Conv2d` layer to a sparse `Linear` layer.
+
+    Args:
+        conv2d (nn.Conv2d): The 2D CNN layer.
+        input_shape (Union[Tuple[int, int, int], torch.Size]): Shape of the input tensor in the form: \
+            `(num_channels, height, width)`.
+
+    Returns:
+        nn.Linear: The linearized CNN layer.
+    """
+    W, b = conv2d_to_matrices(conv2d, input_shape)  # Assume this function is defined
+
+    # Number of input features for the Linear layer
+    num_input_features = (
+        input_shape[0] * input_shape[1] * input_shape[2]
+    )  # channels * height * width
+
+    # Number of output features is determined from the shape of W
+    num_output_features = W.shape[0]
+
+    # Create the Linear layer
+    linear = nn.Linear(num_input_features, num_output_features)
+
+    # Set the weights and biases
+    linear.weight.data = W
+    linear.bias.data = b
+
+    return linear
+
+
 def conv2d_to_matrices(
     conv2d: nn.Conv2d,
     input_shape: Union[Tuple[int, int, int], torch.Size],
@@ -60,40 +94,6 @@ def conv2d_to_matrices(
     b = biases.repeat_interleave(H_out * W_out)
 
     return W, b
-
-
-def linearize_conv2d(
-    conv2d: nn.Conv2d,
-    input_shape: Union[Tuple[int, int, int], torch.Size],
-) -> nn.Linear:
-    """Convert a Pytorch `Conv2d` layer to a sparse `Linear` layer.
-
-    Args:
-        conv2d (nn.Conv2d): The 2D CNN layer.
-        input_shape (Union[Tuple[int, int, int], torch.Size]): Shape of the input tensor in the form: \
-            `(num_channels, height, width)`.
-
-    Returns:
-        nn.Linear: The linearized CNN layer.
-    """
-    W, b = conv2d_to_matrices(conv2d, input_shape)  # Assume this function is defined
-
-    # Number of input features for the Linear layer
-    num_input_features = (
-        input_shape[0] * input_shape[1] * input_shape[2]
-    )  # channels * height * width
-
-    # Number of output features is determined from the shape of W
-    num_output_features = W.shape[0]
-
-    # Create the Linear layer
-    linear = nn.Linear(num_input_features, num_output_features)
-
-    # Set the weights and biases
-    linear.weight.data = W
-    linear.bias.data = b
-
-    return linear
 
 
 def compute_conv2d_output_shape(

@@ -6,6 +6,7 @@ from typing_extensions import TypeAlias
 
 
 def freeze_model(model: nn.Module) -> None:
+    """Freezes the model's learnable parameters."""
     for param in model.parameters():
         param.requires_grad = False
 
@@ -19,22 +20,11 @@ def get_masks(
     num_layers = len(U_list)
     stably_act_masks: List[Tensor] = [L >= 0 for L in L_list]
     stably_deact_masks: List[Tensor] = [U <= 0 for U in U_list]
-    unstable_masks: List[Tensor] = [(L_list[i] < 0) & (U_list[i] > 0) for i in range(num_layers)]
+    unstable_masks: List[Tensor] = [(L < 0) & (U > 0) for L, U in zip(L_list, U_list)]
     for i in range(num_layers):
         assert torch.all((stably_act_masks[i] + stably_deact_masks[i] + unstable_masks[i]) == 1)
 
     return stably_act_masks, stably_deact_masks, unstable_masks
-
-
-def decompose_model(model: nn.Module) -> Tuple[List[Tensor], List[Tensor]]:
-    """Returns the number of linear-layers, linear-layer weights and biases in
-    that order.
-    """
-    linear_layers = [layer for layer in model.children() if isinstance(layer, nn.Linear)]
-
-    W_list: List[Tensor] = [layer.weight.clone().detach() for layer in linear_layers]
-    b_list: List[Tensor] = [layer.bias.clone().detach() for layer in linear_layers]
-    return W_list, b_list
 
 
 NeuronCoords: TypeAlias = Tuple[int, int]

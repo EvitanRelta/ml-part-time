@@ -49,7 +49,7 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
     )
     while True:
         max_objective, theta = solver.forward()
-        if config.run_adv_check:
+        if not config.disable_adv_check:
             # Accumulate thetas for later concrete-input adversarial checking.
             theta_list.append(theta)
 
@@ -70,7 +70,7 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
         # Clamp learnable parameters to their respective value ranges.
         solver.clamp_parameters()
 
-        if config.run_adv_check and epoch % config.num_epoch_adv_check == 0:
+        if not config.disable_adv_check and epoch % config.num_epoch_adv_check == 0:
             # Check if accumulated thetas fails adversarial check.
             # If it fails, stop prematurely. If it passes, purge the
             # accumulated thetas to free up memory.
@@ -84,7 +84,7 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
         epoch += 1
 
     if (
-        config.run_adv_check
+        not config.disable_adv_check
         and len(theta_list) > 0
         and is_falsified_by_concrete_inputs(solver, theta_list)
     ):
@@ -98,7 +98,7 @@ def is_falsified_by_concrete_inputs(solver: Solver, theta_list: List[Tensor]) ->
     via the adversarial-check model (ie. training should be stopped).
     """
     thetas = torch.cat(theta_list, dim=0)
-    L_0: Tensor = solver.vars.layer_vars[0].L.detach()
-    U_0: Tensor = solver.vars.layer_vars[0].U.detach()
+    L_0: Tensor = solver.sequential[0].L.detach()
+    U_0: Tensor = solver.sequential[0].U.detach()
     concrete_inputs: Tensor = torch.where(thetas >= 0, L_0, U_0)
     return solver.adv_check_model.forward(concrete_inputs)
