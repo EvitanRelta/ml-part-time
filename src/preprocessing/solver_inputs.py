@@ -99,6 +99,20 @@ class SolverInputs:
         hwc_L_list: List[Tensor],
         hwc_U_list: List[Tensor],
     ) -> GurobiResults:
+        """Converts Gurobi-computed HWC-formatted unstable-only bounds to
+        CHW-format.
+
+        HWC: Height-Width-Channel
+        CHW: Channel-Height-Width
+
+        Args:
+            gurobi_results (GurobiResults): Gurobi-computed HWC-formatted unstable-only bounds.
+            hwc_L_list (List[Tensor]): Original full (ie. all-neurons) lower-bounds in HWC-format.
+            hwc_U_list (List[Tensor]): Original full (ie. all-neurons) upper-bounds in HWC-format.
+
+        Returns:
+            GurobiResults: Gurobi's results but in CHW-format.
+        """
         hwc_unstable_masks = [(L < 0) & (U > 0) for L, U in zip(hwc_L_list, hwc_U_list)]
 
         gurobi_L_list = list(gurobi_results["L_list_unstable_only"])
