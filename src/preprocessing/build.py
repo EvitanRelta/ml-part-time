@@ -121,7 +121,7 @@ def build_intermediate_layer(
     prev_out_feat: int,
 ) -> Tuple[IntermediateLayer, int]:
     layer = next(layer_gen)
-    while not isinstance(layer, nn.Linear) and not isinstance(layer, nn.Conv2d):
+    while not isinstance(layer, (nn.Linear, nn.Conv2d)):
         layer = next(layer_gen)
 
     transposed_layer, bias_module, out_feat = transpose_layer(layer, prev_out_feat)
