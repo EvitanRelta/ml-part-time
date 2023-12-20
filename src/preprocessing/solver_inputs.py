@@ -1,5 +1,5 @@
 import math
-from typing import List, Union
+from typing import List, Tuple, Union
 
 import torch
 from numpy import ndarray
@@ -19,6 +19,7 @@ class SolverInputs:
     def __init__(
         self,
         model: nn.Module,
+        input_shape: Tuple[int, ...],
         ground_truth_neuron_index: int,
         L_list: Union[List[ndarray], List[Tensor]],
         U_list: Union[List[ndarray], List[Tensor]],
@@ -31,6 +32,7 @@ class SolverInputs:
         skip_validation: bool = False,
     ) -> None:
         self.model: nn.Module = model
+        self.input_shape: Tuple[int, ...] = input_shape
         self.ground_truth_neuron_index: int = ground_truth_neuron_index
 
         # Convert to tensor, float dtype, and correct dimensionality if necessary.
@@ -89,9 +91,9 @@ class SolverInputs:
             other_inputs_path (str): Path to the other inputs (saved in \
                 `SolverInputsSavedDict` format).
         """
-        model: nn.Module = load_onnx_model(onnx_model_path)
+        model, input_shape = load_onnx_model(onnx_model_path, return_input_shape=True)
         loaded: SolverInputsSavedDict = torch.load(other_inputs_path)
-        return SolverInputs(model=model, **loaded)
+        return SolverInputs(model, input_shape, **loaded)
 
     def convert_gurobi_hwc_to_chw(
         self,

@@ -11,7 +11,7 @@ CURRENT_DIR = os.path.dirname(__file__)
 get_abs_path = set_abs_path_to(CURRENT_DIR)
 ONNX_MODEL_PATH = get_abs_path("data/toy_example.onnx")
 
-model = load_onnx_model(ONNX_MODEL_PATH)
+model, input_shape = load_onnx_model(ONNX_MODEL_PATH, return_input_shape=True)
 
 L_list: List[Tensor] = [
     torch.tensor([-1, -1]).float(),
@@ -76,6 +76,7 @@ ground_truth_neuron_index: int = 0
 
 solver_inputs = SolverInputs(
     model=model,
+    input_shape=input_shape,
     ground_truth_neuron_index=ground_truth_neuron_index,
     L_list=L_list,
     U_list=U_list,

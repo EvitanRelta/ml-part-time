@@ -14,11 +14,11 @@ OTHER_INPUTS_PATH = get_abs_path("data/conv_med_img67.pt")
 GUROBI_RESULTS_PATH = get_abs_path("data/conv_med_img67_gurobi_results.pt")
 
 
-model = load_onnx_model(ONNX_MODEL_PATH)
+model, input_shape = load_onnx_model(ONNX_MODEL_PATH, return_input_shape=True)
 model = remove_first_n_modules(model, 4)  # Remove norm layers.
 
 loaded: SolverInputsSavedDict = torch.load(OTHER_INPUTS_PATH)
-solver_inputs = SolverInputs(model, **loaded)
+solver_inputs = SolverInputs(model, input_shape, **loaded)
 
 gurobi_results: GurobiResults = torch.load(GUROBI_RESULTS_PATH)
 gurobi_results = solver_inputs.convert_gurobi_hwc_to_chw(
