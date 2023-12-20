@@ -15,7 +15,7 @@ GUROBI_RESULTS_PATH = get_abs_path("data/conv_med_gurobi_results.pt")
 
 
 model, input_shape = load_onnx_model(ONNX_MODEL_PATH, return_input_shape=True)
-model = remove_first_n_modules(model, 4)  # Remove norm layers.
+remove_first_n_modules(model, 4)  # Remove norm layers.
 
 loaded: SolverInputsSavedDict = torch.load(OTHER_INPUTS_PATH)
 solver_inputs = SolverInputs(model, input_shape, **loaded)

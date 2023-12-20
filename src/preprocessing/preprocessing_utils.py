@@ -12,19 +12,13 @@ def freeze_model(model: nn.Module) -> None:
         param.requires_grad = False
 
 
-def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> fx.GraphModule:
-    """Destructively remove the the first `n` number of modules from a
-    `torch.fx.GraphModule`, and returned the module-removed `GraphModule`.
-
-    Note: Destructively mutates `graph_module.graph`.
+def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
+    """Mutably remove the the first `n` number of modules from a
+    `torch.fx.GraphModule`.
 
     Args:
         graph_module (fx.GraphModule): `GraphModule` to remove the layers from.
         n (int): Number of modules to remove.
-
-    Returns:
-        fx.GraphModule: New `GraphModule` with the first `n` modules from \
-            `graph_module` removed.
     """
     nodes = cast(Iterator[fx.Node], iter(graph_module.graph.nodes))
     next(nodes)  # Pop the input node, as we don't include that in the removal
@@ -45,8 +39,9 @@ def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> fx.GraphModu
     for node in nodes_to_remove:
         graph_module.graph.erase_node(node)
 
-    # Recompile the graph to a GraphModule
-    return fx.GraphModule(graph_module, graph_module.graph)
+    # Recompile the graph
+    graph_module.recompile()
+    graph_module.delete_all_unused_submodules()
 
 
 def get_masks(
