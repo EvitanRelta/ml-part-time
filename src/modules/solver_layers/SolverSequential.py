@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 from ...preprocessing import preprocessing_utils
-from ...preprocessing.build import build
+from ...preprocessing.build import build_solver_graph_module
 from ...preprocessing.solver_inputs import SolverInputs
 from .base_class import SolverLayer
 from .input_layer import InputLayer
@@ -12,14 +12,14 @@ from .intermediate_layer import IntermediateLayer
 from .output_layer import OutputLayer
 
 
-class SolverSequential(nn.ModuleList):
+class SolverSequential(nn.Module):
     """A sequential module that sequantially passes the outputs from the solver
     output-layer to the intermediate-layers then to the input-layer.
     """
 
     def __init__(self, inputs: SolverInputs) -> None:
-        self.layers = build(inputs)
-        super().__init__(self.layers)
+        super().__init__()
+        self.graph_module = build_solver_graph_module(inputs)
 
     def solve_for_layer(self, layer_index: int) -> None:
         C_list, self.solve_coords = preprocessing_utils.get_C_for_layer(
@@ -29,19 +29,27 @@ class SolverSequential(nn.ModuleList):
             self[i].set_C_and_reset_parameters(C_list[i])
 
     def forward(self) -> Tuple[Tensor, Tensor]:
-        x = ()
-        for i in range(len(self) - 1, -1, -1):
-            layer = self[i]
-            x = layer.forward(*x)  # type: ignore
-        return x  # type: ignore
+        return self.graph_module.forward()
 
     def clamp_parameters(self):
         with torch.no_grad():
             for layer in self:
                 layer.clamp_parameters()
 
+    @property
+    def _solver_layers(self) -> List[SolverLayer]:
+        if not hasattr(self, "__solver_layers"):
+            self.__solver_layers: List[SolverLayer] = [
+                x for x in self.graph_module.children() if isinstance(x, SolverLayer)
+            ]
+            self.__solver_layers.reverse()
+        return self.__solver_layers
+
+    def __len__(self) -> int:
+        return len(self._solver_layers)
+
     def __iter__(self) -> Iterator[SolverLayer]:
-        return super().__iter__()  # type: ignore
+        return iter(self._solver_layers)
 
     # fmt: off
     @overload
@@ -52,7 +60,7 @@ class SolverSequential(nn.ModuleList):
     def __getitem__(self, i: int) -> IntermediateLayer: ...
     # fmt: on
     def __getitem__(self, i: int) -> SolverLayer:
-        return super().__getitem__(i)  # type: ignore
+        return self._solver_layers[i]
 
     @property
     def L_list(self) -> List[Tensor]:
