@@ -3,7 +3,7 @@ from typing import List, Tuple, Union
 
 import torch
 from numpy import ndarray
-from torch import Tensor, nn
+from torch import Tensor, fx, nn
 
 from ..inputs.save_file_types import GurobiResults, SolverInputsSavedDict
 from ..preprocessing.hwc_to_chw import (
@@ -18,7 +18,7 @@ class SolverInputs:
 
     def __init__(
         self,
-        model: nn.Module,
+        model: fx.GraphModule,
         input_shape: Tuple[int, ...],
         ground_truth_neuron_index: int,
         L_list: Union[List[ndarray], List[Tensor]],
@@ -31,7 +31,7 @@ class SolverInputs:
         is_hwc: bool = True,
         skip_validation: bool = False,
     ) -> None:
-        self.model: nn.Module = model
+        self.model: fx.GraphModule = model
         self.input_shape: Tuple[int, ...] = input_shape
         self.ground_truth_neuron_index: int = ground_truth_neuron_index
 
