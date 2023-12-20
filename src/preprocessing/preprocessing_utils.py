@@ -1,7 +1,8 @@
-from typing import List, Tuple
+import itertools
+from typing import Iterator, List, Tuple, cast
 
 import torch
-from torch import Tensor, nn
+from torch import Tensor, fx, nn
 from typing_extensions import TypeAlias
 
 
@@ -9,6 +10,43 @@ def freeze_model(model: nn.Module) -> None:
     """Freezes the model's learnable parameters."""
     for param in model.parameters():
         param.requires_grad = False
+
+
+def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> fx.GraphModule:
+    """Destructively remove the the first `n` number of modules from a
+    `torch.fx.GraphModule`, and returned the module-removed `GraphModule`.
+
+    Note: Destructively mutates `graph_module.graph`.
+
+    Args:
+        graph_module (fx.GraphModule): `GraphModule` to remove the layers from.
+        n (int): Number of modules to remove.
+
+    Returns:
+        fx.GraphModule: New `GraphModule` with the first `n` modules from \
+            `graph_module` removed.
+    """
+    nodes = cast(Iterator[fx.Node], iter(graph_module.graph.nodes))
+    next(nodes)  # Pop the input node, as we don't include that in the removal
+    nodes_to_remove = list(itertools.islice(nodes, n))
+    assert all(
+        len(node.users) == 1 for node in nodes_to_remove
+    ), "Failed assumption that all nodes to remove only has 1 user."
+
+    # Find the node that will be the new first node after the removal.
+    new_first_node = next(iter(nodes_to_remove[-1].users))
+
+    # Replace the argument of the first node after removal with the input node.
+    input_node = next(iter(graph_module.graph.nodes))
+    new_first_node.args = (input_node,)
+
+    # Remove the nodes, starting from the back.
+    nodes_to_remove.reverse()
+    for node in nodes_to_remove:
+        graph_module.graph.erase_node(node)
+
+    # Recompile the graph to a GraphModule
+    return fx.GraphModule(graph_module, graph_module.graph)
 
 
 def get_masks(

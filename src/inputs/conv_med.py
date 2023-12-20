@@ -1,8 +1,8 @@
 import os
 
 import torch
-from torch import nn
 
+from ..preprocessing.preprocessing_utils import remove_first_n_modules
 from ..preprocessing.solver_inputs import SolverInputs
 from ..utils import load_onnx_model, set_abs_path_to
 from .save_file_types import GurobiResults, SolverInputsSavedDict
@@ -14,11 +14,11 @@ OTHER_INPUTS_PATH = get_abs_path("conv_med.pth")
 GUROBI_RESULTS_PATH = get_abs_path("conv_med_gurobi_results.pth")
 
 
-model: nn.Module = load_onnx_model(ONNX_MODEL_PATH)
-model_wo_norm = nn.Sequential(*list(model.children())[4:])
+model = load_onnx_model(ONNX_MODEL_PATH)
+model = remove_first_n_modules(model, 4)  # Remove norm layers.
 
 loaded: SolverInputsSavedDict = torch.load(OTHER_INPUTS_PATH)
-solver_inputs = SolverInputs(model_wo_norm, **loaded)
+solver_inputs = SolverInputs(model, **loaded)
 
 gurobi_results: GurobiResults = torch.load(GUROBI_RESULTS_PATH)
 gurobi_results = solver_inputs.convert_gurobi_hwc_to_chw(
