@@ -9,9 +9,9 @@ from .save_file_types import GurobiResults, SolverInputsSavedDict
 
 CURRENT_DIR = os.path.dirname(__file__)
 get_abs_path = set_abs_path_to(CURRENT_DIR)
-ONNX_MODEL_PATH = get_abs_path("conv_med.onnx")
-OTHER_INPUTS_PATH = get_abs_path("conv_med.pth")
-GUROBI_RESULTS_PATH = get_abs_path("conv_med_gurobi_results.pth")
+ONNX_MODEL_PATH = get_abs_path("data/conv_med.onnx")
+OTHER_INPUTS_PATH = get_abs_path("data/conv_med.pt")
+GUROBI_RESULTS_PATH = get_abs_path("data/conv_med_gurobi_results.pt")
 
 
 model = load_onnx_model(ONNX_MODEL_PATH)
