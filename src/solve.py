@@ -46,7 +46,7 @@ def solve(
 
     new_L_list: List[Tensor] = []
     new_U_list: List[Tensor] = []
-    for layer_index in range(len(solver.sequential) - 1):  # Don't solve for last layer
+    for layer_index in range(len(solver.layers) - 1):  # Don't solve for last layer
         solver.reset_and_solve_for_layer(layer_index)
         is_falsified = train(solver, training_config)
         if is_falsified:
@@ -57,8 +57,8 @@ def solve(
         new_U_list.append(new_U)
 
     # Add last initial bounds.
-    new_L_list.append(solver.sequential[-1].L)
-    new_U_list.append(solver.sequential[-1].U)
+    new_L_list.append(solver.layers[-1].L)
+    new_U_list.append(solver.layers[-1].U)
 
     # Convert tensors to numpy arrays.
     numpy_L_list: List[ndarray] = [x.cpu().numpy() for x in new_L_list]

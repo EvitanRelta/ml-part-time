@@ -12,10 +12,8 @@ from .intermediate_layer import IntermediateLayer
 from .output_layer import OutputLayer
 
 
-class SolverSequential(nn.Module):
-    """A sequential module that sequantially passes the outputs from the solver
-    output-layer to the intermediate-layers then to the input-layer.
-    """
+class SolverLayerContainer(nn.Module):
+    """Module containing all the solver layers."""
 
     def __init__(self, inputs: SolverInputs) -> None:
         super().__init__()
