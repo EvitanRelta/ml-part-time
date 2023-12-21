@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+import onnx2torch.node_converters
+import torch
 from torch import fx, nn
 
 from .linearize_conv2d import compute_conv2d_output_shape
@@ -103,4 +105,12 @@ def compute_output_shape(module: nn.Module, input_shape: Tuple[int, ...]) -> Tup
 
     if isinstance(module, (nn.ReLU, nn.BatchNorm2d)):
         return input_shape
+
+    is_add_layer = (
+        isinstance(module, onnx2torch.node_converters.OnnxBinaryMathOperation)
+        and module.math_op_function is torch.add
+    )
+    if is_add_layer:
+        return input_shape
+
     raise NotImplementedError()
