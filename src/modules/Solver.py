@@ -5,7 +5,7 @@ from torch import Tensor, nn
 
 from ..preprocessing.solver_inputs import SolverInputs
 from .AdversarialCheckModel import AdversarialCheckModel
-from .solver_layers.SolverSequential import SolverLayerContainer
+from .solver_layers.container import SolverLayerContainer
 
 
 class Solver(nn.Module):
