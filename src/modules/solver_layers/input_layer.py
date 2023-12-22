@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from torch import Tensor
 from typing_extensions import override
 
-from ...preprocessing.transpose import UnaryForward
 from .base_class import SolverLayer
 
 
@@ -23,15 +22,13 @@ class InputLayer(SolverLayer):
         stably_deact_mask: Tensor,
         unstable_mask: Tensor,
         C: Tensor,
-        transposed_layer: UnaryForward,
     ) -> None:
         super().__init__(L, U, stably_act_mask, stably_deact_mask, unstable_mask, C)
-        self.transposed_layer = transposed_layer
 
-    def forward(self, V_1: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
-        L, U, C, transposed_layer = self.L, self.U, self.C, self.transposed_layer
+    def forward(self, V_W_1: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
+        L, U, C = self.L, self.U, self.C
 
-        theta: Tensor = C - transposed_layer.forward(V_1)
+        theta: Tensor = C - V_W_1
         max_objective = accum_sum + (F.relu(theta) @ L) - (F.relu(-theta) @ U)
         return max_objective, theta.detach()
 

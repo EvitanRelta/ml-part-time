@@ -61,11 +61,9 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     solver_modules["output_layer"] = output_layer
     prev_output = graph.call_module("output_layer")
 
-    node = last_node
-    prev_layer = output_layer
-
     pick_0 = lambda x: x[0]
     pick_1 = lambda x: x[1]
+    node = last_node
     while True:
         node = node.parent
         if node is None:
@@ -87,7 +85,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             C=next(C_gen),
             transposed_layer=transposed_layer,
             bias_module=bias_module,
-            transposed_layer_next=prev_layer.transposed_layer,
             P=next(P_gen),
             P_hat=next(P_hat_gen),
             p=next(p_gen),
@@ -98,7 +95,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         arg_2 = graph.call_function(pick_1, (prev_output,))
         prev_output = graph.call_module(node.name, (arg_1, arg_2))
         solver_modules[node.name] = layer
-        prev_layer = layer
 
     solver_modules["input_layer"] = InputLayer(
         L=next(L_gen),
@@ -107,7 +103,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         stably_deact_mask=next(stably_deact_mask_gen),
         unstable_mask=next(unstable_mask_gen),
         C=next(C_gen),
-        transposed_layer=prev_layer.transposed_layer,
     )
 
     arg_1 = graph.call_function(pick_0, (prev_output,))
