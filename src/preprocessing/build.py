@@ -39,11 +39,11 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         last_node.output_shape,
     )
     output_layer = OutputLayer(
+        transposed_layer=transposed_layer,
+        bias_module=bias_module,
         L=next(L_gen),
         U=next(U_gen),
         C=next(C_gen),
-        transposed_layer=transposed_layer,
-        bias_module=bias_module,
         H=inputs.H,
         d=inputs.d,
     )
@@ -66,11 +66,11 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             node.output_shape,
         )
         layer = IntermediateLayer(
+            transposed_layer=transposed_layer,
+            bias_module=bias_module,
             L=next(L_gen),
             U=next(U_gen),
             C=next(C_gen),
-            transposed_layer=transposed_layer,
-            bias_module=bias_module,
             P=next(P_gen),
             P_hat=next(P_hat_gen),
             p=next(p_gen),

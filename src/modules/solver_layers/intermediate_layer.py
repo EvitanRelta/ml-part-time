@@ -19,11 +19,11 @@ class IntermediateLayer(SolverLayer):
     @override
     def __init__(
         self,
+        transposed_layer: UnaryForward,
+        bias_module: Bias,
         L: Tensor,
         U: Tensor,
         C: Tensor,
-        transposed_layer: UnaryForward,
-        bias_module: Bias,
         P: Tensor,
         P_hat: Tensor,
         p: Tensor,
