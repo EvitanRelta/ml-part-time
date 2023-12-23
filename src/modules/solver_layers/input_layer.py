@@ -18,12 +18,9 @@ class InputLayer(SolverLayer):
         self,
         L: Tensor,
         U: Tensor,
-        stably_act_mask: Tensor,
-        stably_deact_mask: Tensor,
-        unstable_mask: Tensor,
         C: Tensor,
     ) -> None:
-        super().__init__(L, U, stably_act_mask, stably_deact_mask, unstable_mask, C)
+        super().__init__(L, U, C)
 
     def forward(self, V_W_1: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
         L, U, C = self.L, self.U, self.C

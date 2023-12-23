@@ -17,12 +17,7 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     preprocessing_utils.freeze_model(inputs.model)
 
     graph_wrapper = GraphModuleWrapper(inputs.model, inputs.input_shape)
-
-    (
-        stably_act_masks,
-        stably_deact_masks,
-        unstable_masks,
-    ) = preprocessing_utils.get_masks(inputs.L_list, inputs.U_list)
+    unstable_masks = [(L < 0) & (U > 0) for L, U in zip(inputs.L_list, inputs.U_list)]
 
     # Initially set to solve for input layer.
     C_list, solve_coords = preprocessing_utils.get_C_for_layer(0, unstable_masks)
@@ -32,9 +27,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     P_gen = get_reversed_iterator(inputs.P_list)
     P_hat_gen = get_reversed_iterator(inputs.P_hat_list)
     p_gen = get_reversed_iterator(inputs.p_list)
-    stably_act_mask_gen = get_reversed_iterator(stably_act_masks)
-    stably_deact_mask_gen = get_reversed_iterator(stably_deact_masks)
-    unstable_mask_gen = get_reversed_iterator(unstable_masks)
     C_gen = get_reversed_iterator(C_list)
 
     last_node = graph_wrapper.last_child
@@ -49,9 +41,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     output_layer = OutputLayer(
         L=next(L_gen),
         U=next(U_gen),
-        stably_act_mask=next(stably_act_mask_gen),
-        stably_deact_mask=next(stably_deact_mask_gen),
-        unstable_mask=next(unstable_mask_gen),
         C=next(C_gen),
         transposed_layer=transposed_layer,
         bias_module=bias_module,
@@ -79,9 +68,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         layer = IntermediateLayer(
             L=next(L_gen),
             U=next(U_gen),
-            stably_act_mask=next(stably_act_mask_gen),
-            stably_deact_mask=next(stably_deact_mask_gen),
-            unstable_mask=next(unstable_mask_gen),
             C=next(C_gen),
             transposed_layer=transposed_layer,
             bias_module=bias_module,
@@ -99,9 +85,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     solver_modules["input_layer"] = InputLayer(
         L=next(L_gen),
         U=next(U_gen),
-        stably_act_mask=next(stably_act_mask_gen),
-        stably_deact_mask=next(stably_deact_mask_gen),
-        unstable_mask=next(unstable_mask_gen),
         C=next(C_gen),
     )
 
@@ -111,7 +94,7 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     graph.output(prev_output)
 
     # Assert that all generators are depleted.
-    for gen in [L_gen, U_gen, P_gen, P_hat_gen, p_gen, stably_act_mask_gen, stably_deact_mask_gen, unstable_mask_gen, C_gen]:  # fmt: skip
+    for gen in [L_gen, U_gen, P_gen, P_hat_gen, p_gen, C_gen]:  # fmt: skip
         with pytest.raises(StopIteration):
             next(gen)
 

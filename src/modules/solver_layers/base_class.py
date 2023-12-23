@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import torch
 from torch import Tensor, nn
 
 
@@ -14,12 +15,14 @@ class SolverLayer(ABC, nn.Module):
         self,
         L: Tensor,
         U: Tensor,
-        stably_act_mask: Tensor,
-        stably_deact_mask: Tensor,
-        unstable_mask: Tensor,
         C: Tensor,
     ) -> None:
         super().__init__()
+        stably_act_mask = L >= 0
+        stably_deact_mask = U <= 0
+        unstable_mask = (L < 0) & (U > 0)
+        assert torch.all((stably_act_mask + stably_deact_mask + unstable_mask) == 1)
+
         self.L: Tensor
         self.U: Tensor
         self.stably_act_mask: Tensor

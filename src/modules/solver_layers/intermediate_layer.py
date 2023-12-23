@@ -21,9 +21,6 @@ class IntermediateLayer(SolverLayer):
         self,
         L: Tensor,
         U: Tensor,
-        stably_act_mask: Tensor,
-        stably_deact_mask: Tensor,
-        unstable_mask: Tensor,
         C: Tensor,
         transposed_layer: UnaryForward,
         bias_module: Bias,
@@ -31,7 +28,7 @@ class IntermediateLayer(SolverLayer):
         P_hat: Tensor,
         p: Tensor,
     ) -> None:
-        super().__init__(L, U, stably_act_mask, stably_deact_mask, unstable_mask, C)
+        super().__init__(L, U, C)
         self.transposed_layer = transposed_layer
         self.bias_module = bias_module
 

@@ -44,22 +44,6 @@ def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
     graph_module.delete_all_unused_submodules()
 
 
-def get_masks(
-    L_list: List[Tensor], U_list: List[Tensor]
-) -> Tuple[List[Tensor], List[Tensor], List[Tensor]]:
-    """Returns masks for stably-activated, stably-deactivated and
-    unstable neurons in that order.
-    """
-    num_layers = len(U_list)
-    stably_act_masks: List[Tensor] = [L >= 0 for L in L_list]
-    stably_deact_masks: List[Tensor] = [U <= 0 for U in U_list]
-    unstable_masks: List[Tensor] = [(L < 0) & (U > 0) for L, U in zip(L_list, U_list)]
-    for i in range(num_layers):
-        assert torch.all((stably_act_masks[i] + stably_deact_masks[i] + unstable_masks[i]) == 1)
-
-    return stably_act_masks, stably_deact_masks, unstable_masks
-
-
 NeuronCoords: TypeAlias = Tuple[int, int]
 """Coordinates for a neuron in the model, in the form `(layer_index, neuron_index)`."""
 
