@@ -26,7 +26,11 @@ class InputLayer(SolverLayer):
         L, U, C = self.L, self.U, self.C
 
         theta: Tensor = C - V_W_1
-        max_objective = accum_sum + (F.relu(theta) @ L) - (F.relu(-theta) @ U)
+        max_objective = (
+            accum_sum
+            + (F.relu(theta.flatten(1)) @ L.flatten())
+            - (F.relu(-theta.flatten(1)) @ U.flatten())
+        )
         return max_objective, theta.detach()
 
     @override

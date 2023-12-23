@@ -6,6 +6,7 @@ from numpy import ndarray
 from torch import Tensor, fx, nn
 
 from ..inputs.save_file_types import GurobiResults, SolverInputsSavedDict
+from ..preprocessing.graph_module_wrapper import GraphModuleWrapper
 from ..preprocessing.hwc_to_chw import (
     flattened_hwc_to_chw,
     flattened_unstable_hwc_to_chw,
@@ -56,6 +57,9 @@ class SolverInputs:
 
         if is_hwc:
             self._convert_hwc_to_chw()
+
+        self._unflatten_bounds()
+
         if skip_validation:
             return
         self._validate_types()
@@ -166,6 +170,29 @@ class SolverInputs:
             "U_list_unstable_only": gurobi_U_list,
             "compute_time": gurobi_results["compute_time"],
         }
+
+    def _unflatten_bounds(self) -> None:
+        graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
+        first_node = graph_wrapper.first_child
+
+        # Assume 1st dim is batch dim.
+        self.L_list[0] = self.L_list[0].reshape(first_node.input_shape[1:])
+        self.U_list[0] = self.U_list[0].reshape(first_node.input_shape[1:])
+
+        i = 1
+        node = first_node
+        while True:
+            if len(node.children) == 0:
+                break
+            node = node.children[0]  # Assume there's only 1 child.
+            if not isinstance(node.module, nn.ReLU):
+                continue
+
+            # Assume 1st dim is batch dim.
+            self.L_list[i] = self.L_list[i].reshape(node.output_shape[1:])
+            self.U_list[i] = self.U_list[i].reshape(node.output_shape[1:])
+
+            i += 1
 
     def _convert_hwc_to_chw(self) -> None:
         """Converts the tensor inputs from Height-Width-Channel (HWC) format to

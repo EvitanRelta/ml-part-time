@@ -49,10 +49,10 @@ class IntermediateLayer(SolverLayer):
 
     def forward(self, V_next_W_next: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        bias_module, transposed_layer, num_batches, num_neurons, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.bias_module, self.transposed_layer, self.num_batches, self.num_neurons, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
+        bias_module, transposed_layer, num_batches, layer_shape, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.bias_module, self.transposed_layer, self.num_batches, self.layer_shape, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
         device = V_next_W_next.device
 
-        V: Tensor = torch.zeros((num_batches, num_neurons)).to(device)
+        V: Tensor = torch.zeros((num_batches, *layer_shape)).to(device)
 
         # Stably activated.
         stably_activated_V: Tensor = V_next_W_next - C

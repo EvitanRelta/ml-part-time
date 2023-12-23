@@ -44,8 +44,8 @@ def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
     graph_module.delete_all_unused_submodules()
 
 
-NeuronCoords: TypeAlias = Tuple[int, int]
-"""Coordinates for a neuron in the model, in the form `(layer_index, neuron_index)`."""
+NeuronCoords: TypeAlias = Tuple[int, Tuple[int, ...]]
+"""Coordinates for a neuron in the model, in the form `(layer_index, neuron_index_tuple)`."""
 
 
 def get_C_for_layer(
@@ -67,10 +67,14 @@ def get_C_for_layer(
 
     # For input layer, solve for all input neurons.
     if layer_index == 0:
-        num_input_neurons = len(unstable_masks[0])
-        C_0 = torch.zeros((num_input_neurons * 2, num_input_neurons)).to(device)
+        mask = unstable_masks[0]
+        num_input_neurons = mask.numel()
+        C_0 = torch.zeros((num_input_neurons * 2, *mask.shape)).to(device)
         batch_index: int = 0
-        for index in range(num_input_neurons):
+
+        # Generating indices for each element.
+        element_indices = itertools.product(*[range(size) for size in mask.shape])
+        for index in element_indices:
             C_0[batch_index][index] = 1  # Minimising
             C_0[batch_index + 1][index] = -1  # Maximising
             batch_index += 2
@@ -80,25 +84,25 @@ def get_C_for_layer(
         for i in range(1, num_layers):
             mask: Tensor = unstable_masks[i]
             num_neurons: int = len(mask)
-            C_list.append(torch.zeros((num_input_neurons * 2, num_neurons)).to(device))
+            C_list.append(torch.zeros((num_input_neurons * 2, *mask.shape)).to(device))
         return C_list, coords
 
     # Else, solve for only unstable neurons in the specified layer.
     num_unstable_in_target_layer = int(unstable_masks[layer_index].sum().item())
     for i in range(num_layers):
         mask: Tensor = unstable_masks[i]
-        num_neurons: int = len(mask)
         if i != layer_index:
-            C_list.append(torch.zeros((num_unstable_in_target_layer * 2, num_neurons)).to(device))
+            C_list.append(torch.zeros((num_unstable_in_target_layer * 2, *mask.shape)).to(device))
             continue
 
-        unstable_indices: Tensor = torch.where(mask)[0]
-        C = torch.zeros((num_unstable_in_target_layer * 2, num_neurons)).to(device)
+        unstable_indices = torch.nonzero(mask)
+        C = torch.zeros((num_unstable_in_target_layer * 2, *mask.shape)).to(device)
         batch_index: int = 0
         for index in unstable_indices:
+            index = tuple(index.tolist())
             C[batch_index][index] = 1  # Minimising
             C[batch_index + 1][index] = -1  # Maximising
             batch_index += 2
-            coords.append((i, int(index.item())))
+            coords.append((i, index))
         C_list.append(C)
     return C_list, coords

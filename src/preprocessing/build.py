@@ -7,7 +7,7 @@ from torch import fx, nn
 from ..modules.solver_layers.input_layer import InputLayer
 from ..modules.solver_layers.intermediate_layer import IntermediateLayer
 from ..modules.solver_layers.output_layer import OutputLayer
-from ..preprocessing.graph_module_wrapper import GraphModuleWrapper
+from ..preprocessing.graph_module_wrapper import GraphModuleWrapper, NodeWrapper
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import transpose_layer
@@ -52,18 +52,41 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
 
     pick_0 = lambda x: x[0]
     pick_1 = lambda x: x[1]
+
+    # Decompose the 2 outputs from current layer for the next layer.
+    arg_1 = graph.call_function(pick_0, (prev_output,))
+    arg_2 = graph.call_function(pick_1, (prev_output,))
+
     node = last_node
     while True:
         node = node.parent
         if node is None:
             break
-        if not isinstance(node.module, (nn.Linear, nn.Conv2d)):
+        if isinstance(node.module, (nn.Linear, nn.Conv2d)):
+            continue
+        if not isinstance(node.module, nn.ReLU):
+            transposed_layer, _ = transpose_layer(
+                node.module,
+                node.input_shape,
+                node.output_shape,
+            )
+
+            # Only feed this layer the `V` from previous layer.
+            arg_1 = graph.call_module(node.name, (arg_1,))
+            solver_modules[node.name] = transposed_layer  # type: ignore
             continue
 
+        def get_preceeding_linear_or_conv(node: NodeWrapper) -> NodeWrapper:
+            if isinstance(node.module, (nn.Linear, nn.Conv2d)):
+                return node
+            return get_preceeding_linear_or_conv(node.parent)  # type: ignore
+
+        preceeding_linear_conv = get_preceeding_linear_or_conv(node)
+
         transposed_layer, bias_module = transpose_layer(
-            node.module,
-            node.input_shape,
-            node.output_shape,
+            preceeding_linear_conv.module,
+            preceeding_linear_conv.input_shape,
+            preceeding_linear_conv.output_shape,
         )
         layer = IntermediateLayer(
             transposed_layer=transposed_layer,
@@ -76,11 +99,12 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             p=next(p_gen),
         )
 
-        # Decompose the 2 outputs from previous layer, and feed it to the current layer.
-        arg_1 = graph.call_function(pick_0, (prev_output,))
-        arg_2 = graph.call_function(pick_1, (prev_output,))
         prev_output = graph.call_module(node.name, (arg_1, arg_2))
         solver_modules[node.name] = layer
+
+        # Decompose the 2 outputs from current layer for the next layer.
+        arg_1 = graph.call_function(pick_0, (prev_output,))
+        arg_2 = graph.call_function(pick_1, (prev_output,))
 
     solver_modules["input_layer"] = InputLayer(
         L=next(L_gen),

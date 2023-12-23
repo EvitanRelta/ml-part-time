@@ -46,9 +46,9 @@ class SolverLayer(ABC, nn.Module):
         return self.C.size(0)
 
     @property
-    def num_neurons(self) -> int:
+    def layer_shape(self) -> torch.Size:
         """The number of neurons this layer has."""
-        return len(self.L)
+        return self.L.shape
 
     @property
     def num_unstable(self) -> int:
