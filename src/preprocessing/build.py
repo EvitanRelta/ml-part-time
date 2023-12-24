@@ -5,9 +5,10 @@ import pytest
 from torch import fx, nn
 
 from ..modules.solver_layers.input_layer import Input_SL
+from ..modules.solver_layers.l1 import L1_SL
 from ..modules.solver_layers.output_layer import Output_SL
 from ..modules.solver_layers.relu import ReLU_SL
-from ..preprocessing.graph_module_wrapper import GraphModuleWrapper, NodeWrapper
+from ..preprocessing.graph_module_wrapper import GraphModuleWrapper
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import transpose_layer
@@ -64,49 +65,56 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         node = node.parent
         if node is None:
             break
+
         if isinstance(node.module, (nn.Linear, nn.Conv2d)):
-            continue
-        if not isinstance(node.module, nn.ReLU):
-            transposed_layer, _ = transpose_layer(
+            transposed_layer, bias_module = transpose_layer(
                 node.module,
                 node.input_shape,
                 node.output_shape,
             )
+            l1_solver_layer = L1_SL(
+                transposed_layer=transposed_layer,
+                bias_module=bias_module,
+            )
 
-            # Only feed this layer the `V_W` from previous layer.
-            arg_2 = graph.call_module(node.name, (arg_2,))
-            solver_modules[node.name] = transposed_layer  # type: ignore
+            prev_output = graph.call_module(node.name, (arg_1, arg_2, arg_3))
+            solver_modules[node.name] = l1_solver_layer
+
+            # Decompose the 3 outputs from current layer for the next layer.
+            arg_1 = graph.call_function(pick_0, (prev_output,))
+            arg_2 = graph.call_function(pick_1, (prev_output,))
+            arg_3 = graph.call_function(pick_2, (prev_output,))
             continue
 
-        def get_preceeding_linear_or_conv(node: NodeWrapper) -> NodeWrapper:
-            if isinstance(node.module, (nn.Linear, nn.Conv2d)):
-                return node
-            return get_preceeding_linear_or_conv(node.parent)  # type: ignore
+        if isinstance(node.module, nn.ReLU):
+            relu_solver_layer = ReLU_SL(
+                L=next(L_gen),
+                U=next(U_gen),
+                C=next(C_gen),
+                P=next(P_gen),
+                P_hat=next(P_hat_gen),
+                p=next(p_gen),
+            )
 
-        preceeding_linear_conv = get_preceeding_linear_or_conv(node)
+            prev_output = graph.call_module(node.name, (arg_1, arg_2, arg_3))
+            solver_modules[node.name] = relu_solver_layer
 
-        transposed_layer, bias_module = transpose_layer(
-            preceeding_linear_conv.module,
-            preceeding_linear_conv.input_shape,
-            preceeding_linear_conv.output_shape,
+            # Decompose the 3 outputs from current layer for the next layer.
+            arg_1 = graph.call_function(pick_0, (prev_output,))
+            arg_2 = graph.call_function(pick_1, (prev_output,))
+            arg_3 = graph.call_function(pick_2, (prev_output,))
+            continue
+
+        transposed_layer, _ = transpose_layer(
+            node.module,
+            node.input_shape,
+            node.output_shape,
         )
-        layer = ReLU_SL(
-            transposed_layer=transposed_layer,
-            bias_module=bias_module,
-            L=next(L_gen),
-            U=next(U_gen),
-            C=next(C_gen),
-            P=next(P_gen),
-            P_hat=next(P_hat_gen),
-            p=next(p_gen),
-        )
-        prev_output = graph.call_module(node.name, (arg_1, arg_2, arg_3))
-        solver_modules[node.name] = layer
 
-        # Decompose the 3 outputs from current layer for the next layer.
-        arg_1 = graph.call_function(pick_0, (prev_output,))
-        arg_2 = graph.call_function(pick_1, (prev_output,))
-        arg_3 = graph.call_function(pick_2, (prev_output,))
+        # Only feed this layer the `V_W` from previous layer.
+        arg_2 = graph.call_module(node.name, (arg_2,))
+        solver_modules[node.name] = transposed_layer  # type: ignore
+        continue
 
     solver_modules["input_layer"] = Input_SL(
         L=next(L_gen),

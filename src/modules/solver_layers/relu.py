@@ -4,8 +4,6 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from ...preprocessing.class_definitions import Bias
-from ...preprocessing.transpose import UnaryForward
 from ..solver_utils import bracket_minus, bracket_plus
 from .base_class import Base_SL
 
@@ -19,8 +17,6 @@ class ReLU_SL(Base_SL):
     @override
     def __init__(
         self,
-        transposed_layer: UnaryForward,
-        bias_module: Bias,
         L: Tensor,
         U: Tensor,
         C: Tensor,
@@ -29,8 +25,6 @@ class ReLU_SL(Base_SL):
         p: Tensor,
     ) -> None:
         super().__init__(L, U, C)
-        self.transposed_layer = transposed_layer
-        self.bias_module = bias_module
 
         self.P: Tensor
         self.P_hat: Tensor
@@ -54,7 +48,7 @@ class ReLU_SL(Base_SL):
         accum_sum: Tensor,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        bias_module, transposed_layer, num_batches, layer_shape, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.bias_module, self.transposed_layer, self.num_batches, self.layer_shape, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
+        num_batches, layer_shape, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.num_batches, self.layer_shape, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
         device = V_W_next.device
 
         V: Tensor = torch.zeros((num_batches, *layer_shape)).to(device)
@@ -68,7 +62,9 @@ class ReLU_SL(Base_SL):
 
         # Unstable.
         if num_unstable == 0:
-            return V, transposed_layer.forward(V), accum_sum - pi @ p
+            # `V_W` is undefined for ReLU layers, and won't be used by next layer.
+            # Thus return a placeholder zero-tensor as `V_W`.
+            return V, torch.zeros(0), accum_sum - pi @ p
 
         V_hat = V_W_next[:, unstable_mask] - pi @ P_hat
 
@@ -81,17 +77,14 @@ class ReLU_SL(Base_SL):
 
         return (
             V,
-            transposed_layer.forward(V),
+            torch.zeros(0),
             accum_sum
-            + (
-                -(bias_module.forward(V))
-                + torch.sum(
-                    (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
-                    / (U[unstable_mask] - L[unstable_mask]),
-                    dim=1,
-                )
-                - pi @ p
-            ),
+            + torch.sum(
+                (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
+                / (U[unstable_mask] - L[unstable_mask]),
+                dim=1,
+            )
+            - pi @ p,
         )
 
     @override
