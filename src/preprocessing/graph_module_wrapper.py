@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Dict, List, Tuple, Union
 
 import onnx2torch.node_converters
 import torch
@@ -14,21 +14,39 @@ class GraphModuleWrapper:
     input_shape: Tuple[int, ...]
 
     def __post_init__(self) -> None:
+        self.nodes: Dict[str, NodeWrapper] = {}
+
         input_node: fx.Node = next(iter(self.graph_module.graph.nodes))
         assert len(input_node.users) == 1, "Failed the assumption that there's only 1 input layer."
 
         first_layer_node = next(iter(input_node.users))
-        self.first_child = NodeWrapper(first_layer_node, self.input_shape, self, parent=None)
+        self.first_child = self.add_node(first_layer_node, self.input_shape)
 
         self.last_child = self.first_child
         while len(self.last_child.children) > 0:
             self.last_child = self.last_child.children[0]
+
+        for node in self.nodes.values():
+            node._create_parents_list()
 
     def get_module(self, node: fx.Node) -> nn.Module:
         """Get the underlying PyTorch module from a node."""
         module_name = node.target
         assert isinstance(module_name, str)
         return self.graph_module.get_submodule(module_name)
+
+    def add_node(self, node: fx.Node, node_input_shape: Tuple[int, ...]) -> "NodeWrapper":
+        node_name = node.target
+        assert isinstance(node_name, str)
+        if node_name in self.nodes:
+            return self.nodes[node_name]
+        self.nodes[node_name] = NodeWrapper(node, node_input_shape, self)
+        return self.nodes[node_name]
+
+    def get_node(self, node: fx.Node) -> "NodeWrapper":
+        node_name = node.target
+        assert isinstance(node_name, str)
+        return self.nodes[node_name]
 
     def __repr__(self) -> str:
         return self.graph_module.__repr__()
@@ -39,16 +57,28 @@ class NodeWrapper:
     node: fx.Node
     input_shape: Tuple[int, ...]
     graph_module_wrapper: GraphModuleWrapper
-    parent: Optional["NodeWrapper"]
 
     def __post_init__(self) -> None:
         assert is_module(self.node), f"`node={self.node}` doesn't represent a PyTorch module."
         self.output_shape: Tuple[int, ...] = compute_output_shape(self.module, self.input_shape)
         self.children: List["NodeWrapper"] = [
-            NodeWrapper(node, self.output_shape, self.graph_module_wrapper, parent=self)
+            self.graph_module_wrapper.add_node(node, self.output_shape)
             for node in self.node.users
             if is_module(node)
         ]
+        self.parents: List["NodeWrapper"]
+
+    def _create_parents_list(self) -> None:
+        self.parents: List["NodeWrapper"] = [
+            self.graph_module_wrapper.get_node(node)
+            for node in self.node.all_input_nodes
+            if is_module(node)
+        ]
+
+    @property
+    def parent(self) -> Union["NodeWrapper", None]:
+        assert len(self.parents) in (0, 1)
+        return self.parents[0] if len(self.parents) == 1 else None
 
     @property
     def name(self) -> str:
@@ -60,9 +90,9 @@ class NodeWrapper:
 
     def __repr__(self) -> str:
         self_repr = self.node.__repr__()
-        parent_repr = self.parent.node.__repr__() if self.parent is not None else "None"
+        parents_repr = f"[{', '.join(x.node.__repr__() for x in self.parents)}]"
         children_repr = f"[{', '.join(x.node.__repr__() for x in self.children)}]"
-        return f"NodeWrapper(node={self_repr}, input_shape={self.input_shape}, output_shape={self.output_shape}, parent={parent_repr}, children={children_repr})"
+        return f"NodeWrapper(node={self_repr}, input_shape={self.input_shape}, output_shape={self.output_shape}, parent={parents_repr}, children={children_repr})"
 
 
 def is_module(node: fx.Node) -> bool:
