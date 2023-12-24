@@ -98,7 +98,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             P_hat=next(P_hat_gen),
             p=next(p_gen),
         )
-
         prev_output = graph.call_module(node.name, (arg_1, arg_2))
         solver_modules[node.name] = layer
 
@@ -111,9 +110,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         U=next(U_gen),
         C=next(C_gen),
     )
-
-    arg_1 = graph.call_function(pick_0, (prev_output,))
-    arg_2 = graph.call_function(pick_1, (prev_output,))
     prev_output = graph.call_module("input_layer", (arg_1, arg_2))
     graph.output(prev_output)
 
