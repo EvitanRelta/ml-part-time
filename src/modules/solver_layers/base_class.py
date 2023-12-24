@@ -4,7 +4,7 @@ import torch
 from torch import Tensor, nn
 
 
-class SolverLayer(ABC, nn.Module):
+class Base_SL(ABC, nn.Module):
     """Abstract base class for all solver layers.
 
     Contains all the constructor-parameters/methods/properties that's in common

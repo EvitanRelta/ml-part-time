@@ -6,10 +6,10 @@ from torch import Tensor, nn
 from ...preprocessing import preprocessing_utils
 from ...preprocessing.build import build_solver_graph_module
 from ...preprocessing.solver_inputs import SolverInputs
-from .base_class import SolverLayer
-from .input_layer import InputLayer
-from .intermediate_layer import IntermediateLayer
-from .output_layer import OutputLayer
+from .base_class import Base_SL
+from .input_layer import Input_SL
+from .intermediate_layer import ReLU_SL
+from .output_layer import Output_SL
 
 
 class SolverLayerContainer(nn.Module):
@@ -35,10 +35,10 @@ class SolverLayerContainer(nn.Module):
                 layer.clamp_parameters()
 
     @property
-    def _solver_layers(self) -> List[SolverLayer]:
+    def _solver_layers(self) -> List[Base_SL]:
         if not hasattr(self, "__solver_layers"):
-            self.__solver_layers: List[SolverLayer] = [
-                x for x in self.graph_module.children() if isinstance(x, SolverLayer)
+            self.__solver_layers: List[Base_SL] = [
+                x for x in self.graph_module.children() if isinstance(x, Base_SL)
             ]
             self.__solver_layers.reverse()
         return self.__solver_layers
@@ -46,18 +46,18 @@ class SolverLayerContainer(nn.Module):
     def __len__(self) -> int:
         return len(self._solver_layers)
 
-    def __iter__(self) -> Iterator[SolverLayer]:
+    def __iter__(self) -> Iterator[Base_SL]:
         return iter(self._solver_layers)
 
     # fmt: off
     @overload
-    def __getitem__(self, i: Literal[0]) -> InputLayer: ...
+    def __getitem__(self, i: Literal[0]) -> Input_SL: ...
     @overload
-    def __getitem__(self, i: Literal[-1]) -> OutputLayer: ...
+    def __getitem__(self, i: Literal[-1]) -> Output_SL: ...
     @overload
-    def __getitem__(self, i: int) -> IntermediateLayer: ...
+    def __getitem__(self, i: int) -> ReLU_SL: ...
     # fmt: on
-    def __getitem__(self, i: int) -> SolverLayer:
+    def __getitem__(self, i: int) -> Base_SL:
         return self._solver_layers[i]
 
     @property

@@ -7,10 +7,10 @@ from typing_extensions import override
 from ...preprocessing.class_definitions import Bias
 from ...preprocessing.transpose import UnaryForward
 from ..solver_utils import bracket_minus, bracket_plus
-from .base_class import SolverLayer
+from .base_class import Base_SL
 
 
-class IntermediateLayer(SolverLayer):
+class ReLU_SL(Base_SL):
     """The solver layer for the model's "intermediate layers". These layers are
     evaluated after the solver-output-layer, as the computation propagates
     from output-layer to intermediate-layers to input-layer.

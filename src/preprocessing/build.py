@@ -4,9 +4,9 @@ from typing import Dict, Iterator, List, TypeVar, Union
 import pytest
 from torch import fx, nn
 
-from ..modules.solver_layers.input_layer import InputLayer
-from ..modules.solver_layers.intermediate_layer import IntermediateLayer
-from ..modules.solver_layers.output_layer import OutputLayer
+from ..modules.solver_layers.input_layer import Input_SL
+from ..modules.solver_layers.intermediate_layer import ReLU_SL
+from ..modules.solver_layers.output_layer import Output_SL
 from ..preprocessing.graph_module_wrapper import GraphModuleWrapper, NodeWrapper
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
@@ -38,7 +38,7 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         last_node.input_shape,
         last_node.output_shape,
     )
-    output_layer = OutputLayer(
+    output_layer = Output_SL(
         transposed_layer=transposed_layer,
         bias_module=bias_module,
         L=next(L_gen),
@@ -88,7 +88,7 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             preceeding_linear_conv.input_shape,
             preceeding_linear_conv.output_shape,
         )
-        layer = IntermediateLayer(
+        layer = ReLU_SL(
             transposed_layer=transposed_layer,
             bias_module=bias_module,
             L=next(L_gen),
@@ -105,7 +105,7 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         arg_1 = graph.call_function(pick_0, (prev_output,))
         arg_2 = graph.call_function(pick_1, (prev_output,))
 
-    solver_modules["input_layer"] = InputLayer(
+    solver_modules["input_layer"] = Input_SL(
         L=next(L_gen),
         U=next(U_gen),
         C=next(C_gen),

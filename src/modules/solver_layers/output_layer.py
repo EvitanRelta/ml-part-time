@@ -6,10 +6,10 @@ from typing_extensions import override
 
 from ...preprocessing.class_definitions import Bias, UnaryForward
 from ...preprocessing.transpose import UnaryForward
-from .base_class import SolverLayer
+from .base_class import Base_SL
 
 
-class OutputLayer(SolverLayer):
+class Output_SL(Base_SL):
     """The solver layer for the model's "output layer". This layer is the FIRST
     to evaluate, as the computation propagates from output-layer to
     intermediate-layers to input-layer.
