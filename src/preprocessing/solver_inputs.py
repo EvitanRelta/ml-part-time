@@ -279,10 +279,6 @@ class SolverInputs:
     def _validate_dimensions(self) -> None:
         # fmt: off
         error_msg = "Expected tensor `{var}` to be {expected_dim}D, but got {dim}D."
-        for i in range(len(self.L_list)):
-            assert self.L_list[i].dim() == 1, error_msg.format(var=f'L_list[{i}]', expected_dim=1, dim=self.L_list[i].dim())
-            assert self.U_list[i].dim() == 1, error_msg.format(var=f'U_list[{i}]', expected_dim=1, dim=self.U_list[i].dim())
-
         assert self.H.dim() == 2, error_msg.format(var="H", expected_dim=2, dim=self.H.dim())
         assert self.d.dim() == 1, error_msg.format(var="d", expected_dim=1, dim=self.d.dim())
         assert self.H.size(0) == self.d.size(0), f"Expected len(H) == len(d), but got {self.H.size(0)} == {self.d.size(0)}."
