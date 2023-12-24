@@ -47,7 +47,7 @@ def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Bias]:
     return transposed_linear, LinearBias(bias.clone().detach())
 
 
-def transpose_conv2d(conv2d: nn.Conv2d) -> Tuple[UnaryForward, Bias]:
+def transpose_conv2d(conv2d: nn.Conv2d) -> Tuple[nn.ConvTranspose2d, Bias]:
     weight = conv2d.weight
 
     # Create a new ConvTranspose2d layer with same parameters and without bias
