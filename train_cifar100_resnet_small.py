@@ -16,11 +16,11 @@ seed_everything(0)
 
 # Load training config from YAML file.
 training_config = TrainingConfig.from_yaml_file(CONFIG_FILE_PATH)
-training_config.num_epoch_adv_check = 2
+training_config.disable_adv_check = True
 
 is_falsified, new_L_list, new_U_list, solver = solve(
     solver_inputs,
-    device=torch.device("cuda"),
+    device=torch.device("cpu"),
     return_solver=True,
     training_config=training_config,
 )

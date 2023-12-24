@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Protocol, Tuple
 
+import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
@@ -115,3 +116,22 @@ class Conv2dFlattenBias(Bias):
             num_batches = V.size(0)
             return V.reshape(num_batches, num_channels, -1).sum(dim=(-1)) @ self.bias
         return V.reshape(num_channels, -1).sum(dim=(-2, -1)) @ self.bias
+
+
+class InverseBatchNorm2d(nn.Module, UnaryForward):
+    def __init__(self, bn: nn.BatchNorm2d):
+        super().__init__()
+        assert bn.running_mean is not None
+        assert bn.running_var is not None
+        self.mean: Tensor = bn.running_mean.clone().detach()
+        self.var: Tensor = bn.running_var.clone().detach()
+        self.weight: Tensor = bn.weight.clone().detach()
+        self.eps: float = bn.eps
+
+    def forward(self, V: Tensor) -> Tensor:
+        return (
+            V
+            * self.weight[None, :, None, None]
+            * torch.sqrt(self.var[None, :, None, None] + self.eps)
+            + self.mean[None, :, None, None]
+        )
