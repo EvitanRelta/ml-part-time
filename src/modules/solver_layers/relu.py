@@ -47,7 +47,12 @@ class ReLU_SL(Base_SL):
             torch.rand((self.num_batches, self.num_unstable)).to(C)
         )
 
-    def forward(self, V_W_next: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(
+        self,
+        V_next: Tensor,
+        V_W_next: Tensor,
+        accum_sum: Tensor,
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
         bias_module, transposed_layer, num_batches, layer_shape, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.bias_module, self.transposed_layer, self.num_batches, self.layer_shape, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
         device = V_W_next.device
@@ -63,7 +68,7 @@ class ReLU_SL(Base_SL):
 
         # Unstable.
         if num_unstable == 0:
-            return transposed_layer.forward(V), accum_sum - pi @ p
+            return V, transposed_layer.forward(V), accum_sum - pi @ p
 
         V_hat = V_W_next[:, unstable_mask] - pi @ P_hat
 
@@ -74,14 +79,19 @@ class ReLU_SL(Base_SL):
             - pi @ P
         )
 
-        return transposed_layer.forward(V), accum_sum + (
-            -(bias_module.forward(V))
-            + torch.sum(
-                (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
-                / (U[unstable_mask] - L[unstable_mask]),
-                dim=1,
-            )
-            - pi @ p
+        return (
+            V,
+            transposed_layer.forward(V),
+            accum_sum
+            + (
+                -(bias_module.forward(V))
+                + torch.sum(
+                    (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
+                    / (U[unstable_mask] - L[unstable_mask]),
+                    dim=1,
+                )
+                - pi @ p
+            ),
         )
 
     @override

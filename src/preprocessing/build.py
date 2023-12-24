@@ -52,10 +52,12 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
 
     pick_0 = lambda x: x[0]
     pick_1 = lambda x: x[1]
+    pick_2 = lambda x: x[2]
 
-    # Decompose the 2 outputs from current layer for the next layer.
+    # Decompose the 3 outputs from current layer for the next layer.
     arg_1 = graph.call_function(pick_0, (prev_output,))
     arg_2 = graph.call_function(pick_1, (prev_output,))
+    arg_3 = graph.call_function(pick_2, (prev_output,))
 
     node = last_node
     while True:
@@ -71,8 +73,8 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
                 node.output_shape,
             )
 
-            # Only feed this layer the `V` from previous layer.
-            arg_1 = graph.call_module(node.name, (arg_1,))
+            # Only feed this layer the `V_W` from previous layer.
+            arg_2 = graph.call_module(node.name, (arg_2,))
             solver_modules[node.name] = transposed_layer  # type: ignore
             continue
 
@@ -98,19 +100,20 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             P_hat=next(P_hat_gen),
             p=next(p_gen),
         )
-        prev_output = graph.call_module(node.name, (arg_1, arg_2))
+        prev_output = graph.call_module(node.name, (arg_1, arg_2, arg_3))
         solver_modules[node.name] = layer
 
-        # Decompose the 2 outputs from current layer for the next layer.
+        # Decompose the 3 outputs from current layer for the next layer.
         arg_1 = graph.call_function(pick_0, (prev_output,))
         arg_2 = graph.call_function(pick_1, (prev_output,))
+        arg_3 = graph.call_function(pick_2, (prev_output,))
 
     solver_modules["input_layer"] = Input_SL(
         L=next(L_gen),
         U=next(U_gen),
         C=next(C_gen),
     )
-    prev_output = graph.call_module("input_layer", (arg_1, arg_2))
+    prev_output = graph.call_module("input_layer", (arg_1, arg_2, arg_3))
     graph.output(prev_output)
 
     # Assert that all generators are depleted.

@@ -22,7 +22,7 @@ class Input_SL(Base_SL):
     ) -> None:
         super().__init__(L, U, C)
 
-    def forward(self, V_W_1: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, V_1: Tensor, V_W_1: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
         L, U, C = self.L, self.U, self.C
 
         theta: Tensor = C - V_W_1

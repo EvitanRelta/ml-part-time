@@ -42,13 +42,13 @@ class Output_SL(Base_SL):
             torch.rand((self.num_batches, self.H.size(0))).to(C)
         )
 
-    def forward(self) -> Tuple[Tensor, Tensor]:
+    def forward(self) -> Tuple[Tensor, Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
         transposed_layer, bias_module, H, d, gamma = self.transposed_layer, self.bias_module, self.H, self.d, self.gamma  # fmt: skip
 
         V = (-H.T @ gamma.T).T
         assert V.dim() == 2
-        return transposed_layer.forward(V), gamma @ d - bias_module.forward(V)
+        return V, transposed_layer.forward(V), gamma @ d - bias_module.forward(V)
 
     @override
     def clamp_parameters(self) -> None:
