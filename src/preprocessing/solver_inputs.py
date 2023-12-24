@@ -1,4 +1,3 @@
-import math
 from typing import List, Tuple, Union
 
 import torch
@@ -55,10 +54,10 @@ class SolverInputs:
             torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in p_list
         ]
 
+        self._unflatten_bounds(is_hwc)
+
         if is_hwc:
             self._convert_hwc_to_chw()
-
-        self._unflatten_bounds()
 
         if skip_validation:
             return
@@ -99,27 +98,23 @@ class SolverInputs:
         loaded: SolverInputsSavedDict = torch.load(other_inputs_path)
         return SolverInputs(model, input_shape, **loaded)
 
-    def convert_gurobi_hwc_to_chw(
-        self,
-        gurobi_results: GurobiResults,
-        hwc_L_list: List[Tensor],
-        hwc_U_list: List[Tensor],
-    ) -> GurobiResults:
-        """Converts Gurobi-computed HWC-formatted unstable-only bounds to
-        CHW-format.
+    def convert_gurobi_hwc_to_chw(self, gurobi_results: GurobiResults) -> GurobiResults:
+        """Converts Gurobi-computed HWC-formatted unstable-only bounds to CHW-format.
 
         HWC: Height-Width-Channel
         CHW: Channel-Height-Width
 
         Args:
             gurobi_results (GurobiResults): Gurobi-computed HWC-formatted unstable-only bounds.
-            hwc_L_list (List[Tensor]): Original full (ie. all-neurons) lower-bounds in HWC-format.
-            hwc_U_list (List[Tensor]): Original full (ie. all-neurons) upper-bounds in HWC-format.
 
         Returns:
             GurobiResults: Gurobi's results but in CHW-format.
         """
-        hwc_unstable_masks = [(L < 0) & (U > 0) for L, U in zip(hwc_L_list, hwc_U_list)]
+        hwc_unstable_masks = [(L < 0) & (U > 0) for L, U in zip(self.L_list, self.U_list)]
+        hwc_unstable_masks = [
+            (x.permute(1, 2, 0) if x.dim() == 3 else x)  # Flatten all 3D masks.
+            for x in hwc_unstable_masks
+        ]
 
         gurobi_L_list = list(gurobi_results["L_list_unstable_only"])
         gurobi_U_list = list(gurobi_results["U_list_unstable_only"])
@@ -127,13 +122,7 @@ class SolverInputs:
         first_layer = next(self.model.children())
 
         if isinstance(first_layer, nn.Conv2d):
-            num_neurons = self.L_list[0].size(0)
-            num_channels = first_layer.in_channels
-
-            # Assume that `height == width` for the CNN input.
-            H_W = int(math.sqrt(num_neurons / num_channels))
-            hwc_shape = (H_W, H_W, num_channels)
-
+            hwc_shape = hwc_unstable_masks[0].shape
             gurobi_L_list[0] = flattened_hwc_to_chw(gurobi_L_list[0], hwc_shape)
             gurobi_U_list[0] = flattened_hwc_to_chw(gurobi_U_list[0], hwc_shape)
 
@@ -145,22 +134,15 @@ class SolverInputs:
             if not isinstance(layer, nn.Conv2d):
                 continue
 
-            num_neurons = self.L_list[i].size(0)
-            num_channels = layer.out_channels
-
-            # Assumes that `height == width` for all CNN inputs.
-            H_W = int(math.sqrt(num_neurons / num_channels))
-            hwc_shape = (H_W, H_W, num_channels)
-
+            hwc_shape = hwc_unstable_masks[i].shape
             gurobi_L_list[i] = flattened_unstable_hwc_to_chw(
                 gurobi_L_list[i],
-                hwc_unstable_masks[i],
+                hwc_unstable_masks[i].flatten(),
                 hwc_shape,
             )
-
             gurobi_U_list[i] = flattened_unstable_hwc_to_chw(
                 gurobi_U_list[i],
-                hwc_unstable_masks[i],
+                hwc_unstable_masks[i].flatten(),
                 hwc_shape,
             )
             i += 1
@@ -171,13 +153,16 @@ class SolverInputs:
             "compute_time": gurobi_results["compute_time"],
         }
 
-    def _unflatten_bounds(self) -> None:
+    def _unflatten_bounds(self, is_hwc: bool) -> None:
         graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
         first_node = graph_wrapper.first_child
 
-        # Assume 1st dim is batch dim.
-        self.L_list[0] = self.L_list[0].reshape(first_node.input_shape[1:])
-        self.U_list[0] = self.U_list[0].reshape(first_node.input_shape[1:])
+        shape = first_node.input_shape[1:]  # Assume 1st dim is batch dim.
+        if is_hwc and len(shape) == 3:
+            C, H, W = shape
+            shape = (H, W, C)
+        self.L_list[0] = self.L_list[0].reshape(shape)
+        self.U_list[0] = self.U_list[0].reshape(shape)
 
         i = 1
         node = first_node
@@ -188,9 +173,12 @@ class SolverInputs:
             if not isinstance(node.module, nn.ReLU):
                 continue
 
-            # Assume 1st dim is batch dim.
-            self.L_list[i] = self.L_list[i].reshape(node.output_shape[1:])
-            self.U_list[i] = self.U_list[i].reshape(node.output_shape[1:])
+            shape = node.output_shape[1:]  # Assume 1st dim is batch dim.
+            if is_hwc and len(shape) == 3:
+                C, H, W = shape
+                shape = (H, W, C)
+            self.L_list[i] = self.L_list[i].reshape(shape)
+            self.U_list[i] = self.U_list[i].reshape(shape)
 
             i += 1
 
@@ -203,15 +191,8 @@ class SolverInputs:
         first_layer = next(self.model.children())
 
         if isinstance(first_layer, nn.Conv2d):
-            num_neurons = self.L_list[0].size(0)
-            num_channels = first_layer.in_channels
-
-            # Assume that `height == width` for the CNN input.
-            H_W = int(math.sqrt(num_neurons / num_channels))
-            hwc_shape = (H_W, H_W, num_channels)
-
-            self.L_list[0] = flattened_hwc_to_chw(self.L_list[0], hwc_shape)
-            self.U_list[0] = flattened_hwc_to_chw(self.U_list[0], hwc_shape)
+            self.L_list[0] = self.L_list[0].permute(2, 0, 1)
+            self.U_list[0] = self.U_list[0].permute(2, 0, 1)
 
         i = 1
         for layer in self.model.children():
@@ -221,16 +202,11 @@ class SolverInputs:
             if not isinstance(layer, nn.Conv2d):
                 continue
 
-            num_neurons = self.L_list[i].size(0)
-            num_channels = layer.out_channels
+            hwc_shape = self.L_list[i].shape
 
-            # Assumes that `height == width` for all CNN inputs.
-            H_W = int(math.sqrt(num_neurons / num_channels))
-            hwc_shape = (H_W, H_W, num_channels)
-
-            unstable_mask = (self.L_list[i] < 0) & (self.U_list[i] > 0)
-            self.L_list[i] = flattened_hwc_to_chw(self.L_list[i], hwc_shape)
-            self.U_list[i] = flattened_hwc_to_chw(self.U_list[i], hwc_shape)
+            unstable_mask = torch.flatten((self.L_list[i] < 0) & (self.U_list[i] > 0))
+            self.L_list[i] = self.L_list[i].permute(2, 0, 1)
+            self.U_list[i] = self.U_list[i].permute(2, 0, 1)
 
             is_last_layer = i >= len(self.P_list) + 1
             if is_last_layer:
