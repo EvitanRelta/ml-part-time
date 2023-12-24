@@ -18,9 +18,8 @@ def pick(tuple_index: int) -> Callable[[Tuple[Tensor, ...]], Tensor]:
     return lambda x: x[tuple_index]
 
 
-pick_0 = pick(0)
-pick_1 = pick(1)
-pick_2 = pick(2)
+def make_tuple(*args) -> Tuple[Tensor, ...]:
+    return tuple(args)
 
 
 def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
@@ -54,12 +53,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     )
     solver_modules["output_layer"] = output_layer
     prev_output = graph.call_module("output_layer")
-
-    # Decompose the 3 outputs from current layer for the next layer.
-    V_arg = graph.call_function(pick_0, (prev_output,))
-    V_W_arg = graph.call_function(pick_1, (prev_output,))
-    accum_sum_arg = graph.call_function(pick_2, (prev_output,))
-
     node = last_node
     while True:
         node = node.parent
@@ -77,13 +70,8 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
                 bias_module=bias_module,
             )
 
-            prev_output = graph.call_module(node.name, (V_arg, V_W_arg, accum_sum_arg))
+            prev_output = graph.call_module(node.name, (prev_output,))
             solver_modules[node.name] = l1_solver_layer
-
-            # Decompose the 3 outputs from current layer for the next layer.
-            V_arg = graph.call_function(pick_0, (prev_output,))
-            V_W_arg = graph.call_function(pick_1, (prev_output,))
-            accum_sum_arg = graph.call_function(pick_2, (prev_output,))
             continue
 
         if isinstance(node.module, nn.ReLU):
@@ -96,13 +84,8 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
                 p=named_solver_inputs.p_dict[node.name],
             )
 
-            prev_output = graph.call_module(node.name, (V_arg, V_W_arg, accum_sum_arg))
+            prev_output = graph.call_module(node.name, (prev_output,))
             solver_modules[node.name] = relu_solver_layer
-
-            # Decompose the 3 outputs from current layer for the next layer.
-            V_arg = graph.call_function(pick_0, (prev_output,))
-            V_W_arg = graph.call_function(pick_1, (prev_output,))
-            accum_sum_arg = graph.call_function(pick_2, (prev_output,))
             continue
 
         transposed_layer, _ = transpose_layer(
@@ -111,8 +94,13 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             node.output_shape,
         )
 
+        V_arg = graph.call_function(pick(0), (prev_output,))
+        V_W_arg = graph.call_function(pick(1), (prev_output,))
+        accum_sum_arg = graph.call_function(pick(2), (prev_output,))
+
         # Only feed this layer the `V_W` from previous layer.
         V_W_arg = graph.call_module(node.name, (V_W_arg,))
+        prev_output = graph.call_function(make_tuple, (V_arg, V_W_arg, accum_sum_arg))
         solver_modules[node.name] = transposed_layer  # type: ignore
         continue
 
@@ -121,7 +109,7 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         U=named_solver_inputs.U_dict["input_layer"],
         C=named_solver_inputs.C_dict["input_layer"],
     )
-    prev_output = graph.call_module("input_layer", (V_arg, V_W_arg, accum_sum_arg))
+    prev_output = graph.call_module("input_layer", (prev_output,))
     graph.output(prev_output)
 
     return fx.GraphModule(solver_modules, graph)

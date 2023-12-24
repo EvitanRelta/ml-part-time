@@ -15,12 +15,8 @@ class L1_SL(nn.Module):
         self.transposed_layer = transposed_layer
         self.bias_module = bias_module
 
-    def forward(
-        self,
-        V_next: Tensor,
-        V_W_next: Tensor,
-        accum_sum: Tensor,
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    def forward(self, tuple_args: Tuple[Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
+        V_next, V_W_next, accum_sum = tuple_args
         V = V_next
         return (
             V,
