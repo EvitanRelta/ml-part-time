@@ -8,8 +8,8 @@ from ...preprocessing.build import build_solver_graph_module
 from ...preprocessing.solver_inputs import SolverInputs
 from .base_class import Base_SL
 from .input_layer import Input_SL
-from .intermediate_layer import ReLU_SL
 from .output_layer import Output_SL
+from .relu import ReLU_SL
 
 
 class SolverLayerContainer(nn.Module):

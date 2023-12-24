@@ -5,8 +5,8 @@ import pytest
 from torch import fx, nn
 
 from ..modules.solver_layers.input_layer import Input_SL
-from ..modules.solver_layers.intermediate_layer import ReLU_SL
 from ..modules.solver_layers.output_layer import Output_SL
+from ..modules.solver_layers.relu import ReLU_SL
 from ..preprocessing.graph_module_wrapper import GraphModuleWrapper, NodeWrapper
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
