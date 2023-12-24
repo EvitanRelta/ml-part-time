@@ -5,6 +5,7 @@ from torch import Tensor, fx, nn
 
 from ..modules.solver_layers.input_layer import Input_SL
 from ..modules.solver_layers.l1 import L1_SL
+from ..modules.solver_layers.misc import Misc_SL
 from ..modules.solver_layers.output_layer import Output_SL
 from ..modules.solver_layers.relu import ReLU_SL
 from ..preprocessing.graph_module_wrapper import GraphModuleWrapper
@@ -93,16 +94,9 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
             node.input_shape,
             node.output_shape,
         )
-
-        V_arg = graph.call_function(pick(0), (prev_output,))
-        V_W_arg = graph.call_function(pick(1), (prev_output,))
-        accum_sum_arg = graph.call_function(pick(2), (prev_output,))
-
-        # Only feed this layer the `V_W` from previous layer.
-        V_W_arg = graph.call_module(node.name, (V_W_arg,))
-        prev_output = graph.call_function(make_tuple, (V_arg, V_W_arg, accum_sum_arg))
-        solver_modules[node.name] = transposed_layer  # type: ignore
-        continue
+        misc_solver_layer = Misc_SL(transposed_layer)
+        prev_output = graph.call_module(node.name, (prev_output,))
+        solver_modules[node.name] = misc_solver_layer
 
     solver_modules["input_layer"] = Input_SL(
         L=named_solver_inputs.L_dict["input_layer"],
