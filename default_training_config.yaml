@@ -11,7 +11,7 @@ max_lr: 1
 
 # Min learning-rate to decay until.
 # The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-6.
-min_lr: 1.0e-6
+min_lr: 1.0e-4
 
 # Factor by which the learning rate will be reduced.
 # The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.5
