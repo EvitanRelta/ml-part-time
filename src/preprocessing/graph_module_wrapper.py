@@ -1,5 +1,6 @@
+import itertools
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Iterator, List, Tuple, Union
 
 import onnx2torch.node_converters
 import torch
@@ -50,6 +51,12 @@ class GraphModuleWrapper:
 
     def __repr__(self) -> str:
         return self.graph_module.__repr__()
+
+    def __iter__(self) -> Iterator["NodeWrapper"]:
+        # First module is the `GraphModule` itself. Exclude that.
+        named_submodules = itertools.islice(self.graph_module.named_modules(), 1, None)
+        submodule_names = (name for name, _ in named_submodules)
+        return (self.nodes[name] for name in submodule_names)
 
 
 @dataclass
