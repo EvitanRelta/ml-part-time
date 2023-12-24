@@ -157,7 +157,7 @@ class SolverInputs:
         graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
         first_node = graph_wrapper.first_child
 
-        shape = first_node.input_shape[1:]  # Assume 1st dim is batch dim.
+        shape = first_node.unbatched_input_shape
         if is_hwc and len(shape) == 3:
             C, H, W = shape
             shape = (H, W, C)
@@ -173,7 +173,7 @@ class SolverInputs:
             if not isinstance(node.module, nn.ReLU):
                 continue
 
-            shape = node.output_shape[1:]  # Assume 1st dim is batch dim.
+            shape = node.unbatched_output_shape
             if is_hwc and len(shape) == 3:
                 C, H, W = shape
                 shape = (H, W, C)

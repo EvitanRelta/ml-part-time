@@ -68,6 +68,10 @@ class NodeWrapper:
     def __post_init__(self) -> None:
         assert is_module(self.node), f"`node={self.node}` doesn't represent a PyTorch module."
         self.output_shape: Tuple[int, ...] = compute_output_shape(self.module, self.input_shape)
+
+        self.unbatched_input_shape: Tuple[int, ...] = self.input_shape[1:]
+        self.unbatched_output_shape: Tuple[int, ...] = self.output_shape[1:]
+
         self.children: List["NodeWrapper"] = [
             self.graph_module_wrapper.add_node(node, self.output_shape)
             for node in self.node.users
