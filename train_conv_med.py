@@ -30,7 +30,7 @@ if is_falsified:
     print("Verification problem is falsified.")
     sys.exit(0)
 
-unstable_masks = solver.sequential.unstable_masks
+unstable_masks = solver.layers.unstable_masks
 
 compare_against_gurobi(
     new_L_list=[torch.from_numpy(x) for x in new_L_list],

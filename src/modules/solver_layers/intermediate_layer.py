@@ -19,22 +19,17 @@ class IntermediateLayer(SolverLayer):
     @override
     def __init__(
         self,
-        L: Tensor,
-        U: Tensor,
-        stably_act_mask: Tensor,
-        stably_deact_mask: Tensor,
-        unstable_mask: Tensor,
-        C: Tensor,
         transposed_layer: UnaryForward,
         bias_module: Bias,
-        transposed_layer_next: UnaryForward,
+        L: Tensor,
+        U: Tensor,
+        C: Tensor,
         P: Tensor,
         P_hat: Tensor,
         p: Tensor,
     ) -> None:
-        super().__init__(L, U, stably_act_mask, stably_deact_mask, unstable_mask, C)
+        super().__init__(L, U, C)
         self.transposed_layer = transposed_layer
-        self.transposed_layer_next = transposed_layer_next
         self.bias_module = bias_module
 
         self.P: Tensor
@@ -52,13 +47,12 @@ class IntermediateLayer(SolverLayer):
             torch.rand((self.num_batches, self.num_unstable)).to(C)
         )
 
-    def forward(self, V_next: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, V_next_W_next: Tensor, accum_sum: Tensor) -> Tuple[Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        bias_module, transposed_layer_next, num_batches, num_neurons, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.bias_module, self.transposed_layer_next, self.num_batches, self.num_neurons, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
-        device = V_next.device
+        bias_module, transposed_layer, num_batches, num_neurons, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.bias_module, self.transposed_layer, self.num_batches, self.num_neurons, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
+        device = V_next_W_next.device
 
         V: Tensor = torch.zeros((num_batches, num_neurons)).to(device)
-        V_next_W_next = transposed_layer_next.forward(V_next)
 
         # Stably activated.
         stably_activated_V: Tensor = V_next_W_next - C
@@ -69,7 +63,7 @@ class IntermediateLayer(SolverLayer):
 
         # Unstable.
         if num_unstable == 0:
-            return V, accum_sum - pi @ p
+            return transposed_layer.forward(V), accum_sum - pi @ p
 
         V_hat = V_next_W_next[:, unstable_mask] - pi @ P_hat
 
@@ -80,7 +74,7 @@ class IntermediateLayer(SolverLayer):
             - pi @ P
         )
 
-        return V, accum_sum + (
+        return transposed_layer.forward(V), accum_sum + (
             -(bias_module.forward(V))
             + torch.sum(
                 (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
