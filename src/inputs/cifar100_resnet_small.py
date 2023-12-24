@@ -22,8 +22,8 @@ model, input_shape = load_onnx_model(ONNX_MODEL_PATH, return_input_shape=True)
 
 
 def generate_random_bounds(shape: Tuple[int, ...]) -> Tuple[Tensor, Tensor]:
-    tensor1 = torch.rand(shape, dtype=torch.float)
-    tensor2 = torch.rand(shape, dtype=torch.float)
+    tensor1 = torch.rand(shape, dtype=torch.float) - 0.5
+    tensor2 = torch.rand(shape, dtype=torch.float) - 0.5
     L = torch.min(tensor1, tensor2).flatten()
     U = torch.max(tensor1, tensor2).flatten()
     return L, U
@@ -34,16 +34,16 @@ def generate_random_p_tensors(L: Tensor, U: Tensor) -> Tuple[Tensor, Tensor, Ten
     unstable_mask = (L < 0) & (U > 0)
     num_unstable = cast(int, unstable_mask.sum().item())
 
-    P = torch.rand((NUM_CONSTRAINTS, num_unstable), dtype=torch.float)
-    P_hat = torch.rand((NUM_CONSTRAINTS, num_unstable), dtype=torch.float)
-    p = torch.rand((NUM_CONSTRAINTS,), dtype=torch.float)
+    P = torch.rand((NUM_CONSTRAINTS, num_unstable), dtype=torch.float) - 0.5
+    P_hat = torch.rand((NUM_CONSTRAINTS, num_unstable), dtype=torch.float) - 0.5
+    p = torch.rand((NUM_CONSTRAINTS,), dtype=torch.float) - 0.5
     return P, P_hat, p
 
 
 def generate_random_H_d(num_output_neurons: int) -> Tuple[Tensor, Tensor]:
     NUM_CONSTRAINTS = 3
-    H = torch.rand((NUM_CONSTRAINTS, num_output_neurons))
-    d = torch.rand((NUM_CONSTRAINTS,))
+    H = torch.rand((NUM_CONSTRAINTS, num_output_neurons)) - 0.5
+    d = torch.rand((NUM_CONSTRAINTS,)) - 0.5
     return H, d
 
 
