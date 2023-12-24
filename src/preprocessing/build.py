@@ -1,7 +1,7 @@
 from collections.abc import Iterator
-from typing import Dict, Iterator, List, TypeVar, Union
+from typing import Callable, Dict, Iterator, List, Tuple, TypeVar, Union
 
-from torch import fx, nn
+from torch import Tensor, fx, nn
 
 from ..modules.solver_layers.input_layer import Input_SL
 from ..modules.solver_layers.l1 import L1_SL
@@ -12,6 +12,15 @@ from ..preprocessing.named_solver_inputs import NamedSolverInputs
 from . import preprocessing_utils
 from .solver_inputs import SolverInputs
 from .transpose import transpose_layer
+
+
+def pick(tuple_index: int) -> Callable[[Tuple[Tensor, ...]], Tensor]:
+    return lambda x: x[tuple_index]
+
+
+pick_0 = pick(0)
+pick_1 = pick(1)
+pick_2 = pick(2)
 
 
 def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
@@ -45,10 +54,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     )
     solver_modules["output_layer"] = output_layer
     prev_output = graph.call_module("output_layer")
-
-    pick_0 = lambda x: x[0]
-    pick_1 = lambda x: x[1]
-    pick_2 = lambda x: x[2]
 
     # Decompose the 3 outputs from current layer for the next layer.
     arg_1 = graph.call_function(pick_0, (prev_output,))
