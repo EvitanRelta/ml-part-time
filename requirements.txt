@@ -7,3 +7,4 @@ torch>=2.0.1
 dataclass-wizard>=0.22.2
 dataclass-wizard[yaml]>=0.22.2
 pytest>=7.4.3
+networkx[default]>=3.1
