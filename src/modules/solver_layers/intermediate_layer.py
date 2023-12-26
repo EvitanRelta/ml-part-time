@@ -69,7 +69,7 @@ class IntermediateLayer(SolverLayer):
 
         # Unstable.
         if num_unstable == 0:
-            return V, accum_sum
+            return V, accum_sum - pi @ p
 
         V_hat = V_next_W_next[:, unstable_mask] - pi @ P_hat
 
