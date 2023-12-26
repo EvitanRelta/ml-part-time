@@ -43,7 +43,7 @@ class ReLU_SL(Base_SL):
 
     def forward(self, *args: Tuple[Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
         V_list, V_W_list, accum_sum_list = zip(*args)
-        V_W_next = torch.stack(V_W_list).sum(dim=0)
+        V_W_next = torch.stack([x for x in V_W_list if x.shape != (0,)]).sum(dim=0)
         accum_sum = torch.stack(accum_sum_list).sum(dim=0)
 
         # Assign to local variables, so that they can be used w/o `self.` prefix.

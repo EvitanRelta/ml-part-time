@@ -92,7 +92,7 @@ class NodeWrapper:
 
     @property
     def name(self) -> str:
-        return str(self.node)
+        return self.node.target  # type: ignore
 
     @property
     def module(self) -> nn.Module:
