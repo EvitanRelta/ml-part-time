@@ -43,8 +43,7 @@ class ReLU_SL(Solvable_SL):
 
     def forward(self, *args: Tuple[Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
         V_list, V_W_list, accum_sum_list = zip(*args)
-        V_W_next = torch.stack([x for x in V_W_list if x.shape != (0,)]).sum(dim=0)
-        accum_sum = torch.stack(accum_sum_list).sum(dim=0)
+        V_W_next = torch.stack(V_W_list).sum(dim=0)
 
         # Assign to local variables, so that they can be used w/o `self.` prefix.
         num_batches, layer_shape, num_unstable, P, P_hat, p, C, stably_act_mask, stably_deact_mask, unstable_mask, pi, alpha, U, L = self.num_batches, self.layer_shape, self.num_unstable, self.P, self.P_hat, self.p, self.C, self.stably_act_mask, self.stably_deact_mask, self.unstable_mask, self.pi, self.alpha, self.U, self.L  # fmt: skip
@@ -63,7 +62,7 @@ class ReLU_SL(Solvable_SL):
         if num_unstable == 0:
             # `V_W` is undefined for ReLU layers, and won't be used by next layer.
             # Thus return a placeholder zero-tensor as `V_W`.
-            return V, torch.zeros(0), accum_sum - pi @ p
+            return V, torch.zeros(0), -(pi @ p)
 
         V_hat = V_W_next[:, unstable_mask] - pi @ P_hat
 
@@ -76,9 +75,8 @@ class ReLU_SL(Solvable_SL):
 
         return (
             V,
-            torch.zeros(0),
-            accum_sum
-            + torch.sum(
+            torch.zeros_like(V_W_next),
+            torch.sum(
                 (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
                 / (U[unstable_mask] - L[unstable_mask]),
                 dim=1,

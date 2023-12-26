@@ -1,5 +1,6 @@
 from typing import Tuple
 
+import torch
 from torch import Tensor, nn
 
 from ...preprocessing.class_definitions import UnaryForward
@@ -16,5 +17,5 @@ class Misc_SL(nn.Module):
         return (
             V_next,
             self.transposed_layer.forward(V_W_next),
-            accum_sum,
+            torch.zeros_like(accum_sum),
         )

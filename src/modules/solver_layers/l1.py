@@ -21,5 +21,5 @@ class L1_SL(nn.Module):
         return (
             V,
             self.transposed_layer.forward(V),
-            accum_sum - self.bias_module.forward(V),
+            -self.bias_module.forward(V),
         )

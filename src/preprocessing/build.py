@@ -94,6 +94,10 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         DG.add_edge(*DG.predecessors(name), *DG.successors(name))
         DG.remove_node(name)
 
+    l1_l2_names = (name for name, module in model.named_children() if isinstance(module, (nn.Linear, nn.Conv2d, nn.ReLU)))  # fmt: skip
+    for name in l1_l2_names:
+        DG.add_edge(name, "input_layer")
+
     output_fx_node: fx.Node = next(x for x in model.graph.nodes if x.op == "output")
     last_module_fx_node = output_fx_node.all_input_nodes[0]
     output_module_name = cast(str, last_module_fx_node.target)

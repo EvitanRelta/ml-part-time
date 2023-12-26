@@ -1,5 +1,6 @@
 from typing import Tuple
 
+import torch
 import torch.nn.functional as F
 from torch import Tensor
 from typing_extensions import override
@@ -22,13 +23,17 @@ class Input_SL(Solvable_SL):
     ) -> None:
         super().__init__(L, U, C)
 
-    def forward(self, tuple_args: Tuple[Tensor, Tensor, Tensor]) -> Tuple[Tensor, Tensor]:
-        V_1, V_W_1, accum_sum = tuple_args
+    def forward(
+        self,
+        layer_1_args: Tuple[Tensor, Tensor, Tensor],
+        *args: Tuple[Tensor, Tensor, Tensor],
+    ) -> Tuple[Tensor, Tensor]:
+        V_1, V_W_1, accum_sum = layer_1_args
         L, U, C = self.L, self.U, self.C
 
         theta: Tensor = C - V_W_1
         max_objective = (
-            accum_sum
+            torch.stack([accum_sum] + [x[2] for x in args]).sum(dim=0)
             + (F.relu(theta.flatten(1)) @ L.flatten())
             - (F.relu(-theta.flatten(1)) @ U.flatten())
         )
