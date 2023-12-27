@@ -1,4 +1,4 @@
-from typing import Dict, List, cast
+from typing import Dict, Iterable, List, cast
 
 import networkx as nx
 from torch import fx, nn
@@ -94,6 +94,22 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
         DG.add_edge(*DG.predecessors(name), *DG.successors(name))
         DG.remove_node(name)
 
+    fx_graph = networkx_to_pytorch_graph(DG, has_input=False)
+
+    def exclude_one_child_node(child_nodes: List[fx.Node]) -> List[fx.Node]:
+        for node in child_nodes:
+            if len(node.all_input_nodes) > 1:
+                child_nodes.remove(node)
+                return child_nodes
+        return child_nodes[1:]
+
+    add_names = (name for name, module in model.named_children() if preprocessing_utils.is_add_layer(module))  # fmt: skip
+    for name in add_names:
+        children_names = [child_name for _, child_name in DG.out_edges(name)]
+        children_nodes = [x for x in cast(Iterable[fx.Node], fx_graph.nodes) if x.target in children_names]  # fmt: skip
+        for child_node in exclude_one_child_node(children_nodes):
+            child_node.kwargs = {"set_zero_accum": True}
+
     output_fx_node: fx.Node = next(x for x in model.graph.nodes if x.op == "output")
     last_module_fx_node = output_fx_node.all_input_nodes[0]
     output_module_name = cast(str, last_module_fx_node.target)
@@ -108,5 +124,5 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
 
     return fx.GraphModule(
         root=map_modules(submodules, named_solver_inputs),
-        graph=networkx_to_pytorch_graph(DG, has_input=False),
+        graph=fx_graph,
     )
