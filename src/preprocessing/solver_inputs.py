@@ -55,6 +55,7 @@ class SolverInputs:
         self.p_list: List[Tensor] = [
             torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in p_list
         ]
+        self._mask_p_for_unstable_only()
 
         if not skip_validation:
             self._validate_tensors_match_model()
@@ -154,6 +155,21 @@ class SolverInputs:
             "U_list_unstable_only": gurobi_U_list,
             "compute_time": gurobi_results["compute_time"],
         }
+
+    def _mask_p_for_unstable_only(self) -> None:
+        """Mask `P` and `P_hat` if not done yet, picking only the unstable neurons."""
+        for i in range(len(self.P_list)):
+            L, U, P, P_hat = (
+                self.L_list[i + 1],
+                self.U_list[i + 1],
+                self.P_list[i],
+                self.P_hat_list[i],
+            )
+            unstable_mask = torch.flatten((L < 0) & (U > 0))
+            self.P_list[i] = P[:, unstable_mask] if len(unstable_mask) == P.size(1) else P
+            self.P_hat_list[i] = (
+                P_hat[:, unstable_mask] if len(unstable_mask) == P_hat.size(1) else P_hat
+            )
 
     def _unflatten_bounds(self, is_hwc: bool) -> None:
         first_node = self.graph_wrapper.first_child
