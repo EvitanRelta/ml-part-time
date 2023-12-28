@@ -21,8 +21,4 @@ loaded: SolverInputsSavedDict = torch.load(OTHER_INPUTS_PATH)
 solver_inputs = SolverInputs(model, input_shape, **loaded)
 
 gurobi_results: GurobiResults = torch.load(GUROBI_RESULTS_PATH)
-gurobi_results = solver_inputs.convert_gurobi_hwc_to_chw(
-    gurobi_results,
-    hwc_L_list=loaded["L_list"],
-    hwc_U_list=loaded["U_list"],
-)
+gurobi_results = solver_inputs.convert_gurobi_hwc_to_chw(gurobi_results)

@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch import Tensor, nn
 
@@ -23,13 +21,6 @@ class AdversarialCheckModel(nn.Module):
         - `y_g` is the "ground-truth" neuron's output
         - `y_i` is any other output-neuron.
         """
-        first_layer = next(self.model.children())
-        if isinstance(first_layer, nn.Conv2d):
-            num_channels = first_layer.in_channels
-
-            # Assume that `height == width` for the CNN input.
-            H_W = int(math.sqrt(batched_concrete_inputs.size(1) / num_channels))
-            batched_concrete_inputs = batched_concrete_inputs.view(-1, num_channels, H_W, H_W)
         pred = self.model.forward(batched_concrete_inputs)
         assert isinstance(pred, Tensor)
 
