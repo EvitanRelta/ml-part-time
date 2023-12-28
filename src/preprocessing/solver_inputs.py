@@ -180,30 +180,20 @@ class SolverInputs:
 
         Warning: Assumes that `height == width` for all CNN inputs.
         """
-        first_layer = next(self.model.children())
-
-        if isinstance(first_layer, nn.Conv2d):
+        if len(self.graph_wrapper.first_child.unbatched_input_shape) == 3:
             self.L_list[0] = self.L_list[0].permute(2, 0, 1)
             self.U_list[0] = self.U_list[0].permute(2, 0, 1)
 
-        i = 1
-        for layer in self.model.children():
-            if isinstance(layer, nn.Linear):
-                i += 1
-                continue
-            if not isinstance(layer, nn.Conv2d):
+        relu_nodes = (node for node in self.graph_wrapper if isinstance(node.module, nn.ReLU))
+        for i, relu in enumerate(relu_nodes, start=1):
+            if len(relu.unbatched_input_shape) != 3:
                 continue
 
-            hwc_shape = self.L_list[i].shape
-
+            C, H, W = relu.unbatched_input_shape
+            hwc_shape = (H, W, C)
             unstable_mask = torch.flatten((self.L_list[i] < 0) & (self.U_list[i] > 0))
             self.L_list[i] = self.L_list[i].permute(2, 0, 1)
             self.U_list[i] = self.U_list[i].permute(2, 0, 1)
-
-            is_last_layer = i >= len(self.P_list) + 1
-            if is_last_layer:
-                continue
-
             self.P_list[i - 1] = flattened_unstable_hwc_to_chw(
                 self.P_list[i - 1],
                 unstable_mask,
@@ -216,8 +206,6 @@ class SolverInputs:
                 hwc_shape,
                 mask_dim=1,
             )
-            i += 1
-            continue
 
     def _validate_types(self) -> None:
         assert isinstance(self.model, nn.Module)
