@@ -57,7 +57,8 @@ NeuronCoords: TypeAlias = Tuple[int, Tuple[int, ...]]
 
 
 def get_C_for_layer(
-    layer_index: int, unstable_masks: List[Tensor]
+    layer_index: int,
+    unstable_masks: List[Tensor],
 ) -> Tuple[List[Tensor], List[NeuronCoords]]:
     """Get the `C_list` to solve for the unstable neurons in layer `layer_index`,
     where `layer_index` can be any layer except the last (as we don't solve for
