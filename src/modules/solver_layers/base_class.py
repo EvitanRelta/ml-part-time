@@ -4,11 +4,11 @@ import torch
 from torch import Tensor, nn
 
 
-class Base_SL(ABC, nn.Module):
-    """Abstract base class for all solver layers.
+class Solvable_SL(ABC, nn.Module):
+    """Abstract base class for all solver layers that are "solvable"
+    (ie. input layer + ReLU layers).
 
-    Contains all the constructor-parameters/methods/properties that's in common
-    between all layers.
+    Contains the common constructor-parameters/methods/properties.
     """
 
     def __init__(

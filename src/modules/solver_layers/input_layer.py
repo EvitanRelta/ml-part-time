@@ -4,10 +4,10 @@ import torch.nn.functional as F
 from torch import Tensor
 from typing_extensions import override
 
-from .base_class import Base_SL
+from .base_class import Solvable_SL
 
 
-class Input_SL(Base_SL):
+class Input_SL(Solvable_SL):
     """The solver layer for the model's "input layer". This layer is the LAST
     to evaluate, as the computation propagates from output-layer to
     intermediate-layers to input-layer.

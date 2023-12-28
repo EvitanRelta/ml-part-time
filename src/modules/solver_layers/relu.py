@@ -5,10 +5,10 @@ from torch import Tensor, nn
 from typing_extensions import override
 
 from ..solver_utils import bracket_minus, bracket_plus
-from .base_class import Base_SL
+from .base_class import Solvable_SL
 
 
-class ReLU_SL(Base_SL):
+class ReLU_SL(Solvable_SL):
     """The solver layer for the model's "intermediate layers". These layers are
     evaluated after the solver-output-layer, as the computation propagates
     from output-layer to intermediate-layers to input-layer.

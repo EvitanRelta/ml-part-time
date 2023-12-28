@@ -4,10 +4,10 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from .base_class import Base_SL
+from .base_class import Solvable_SL
 
 
-class Output_SL(Base_SL):
+class Output_SL(Solvable_SL):
     """The solver layer for the model's "output layer". This layer is the FIRST
     to evaluate, as the computation propagates from output-layer to
     intermediate-layers to input-layer.

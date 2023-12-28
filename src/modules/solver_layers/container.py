@@ -6,7 +6,7 @@ from torch import Tensor, nn
 from ...preprocessing import preprocessing_utils
 from ...preprocessing.build import build_solver_graph_module
 from ...preprocessing.solver_inputs import SolverInputs
-from .base_class import Base_SL
+from .base_class import Solvable_SL
 from .input_layer import Input_SL
 from .output_layer import Output_SL
 from .relu import ReLU_SL
@@ -35,10 +35,10 @@ class SolverLayerContainer(nn.Module):
                 layer.clamp_parameters()
 
     @property
-    def _solver_layers(self) -> List[Base_SL]:
+    def _solver_layers(self) -> List[Solvable_SL]:
         if not hasattr(self, "__solver_layers"):
-            self.__solver_layers: List[Base_SL] = [
-                x for x in self.graph_module.children() if isinstance(x, Base_SL)
+            self.__solver_layers: List[Solvable_SL] = [
+                x for x in self.graph_module.children() if isinstance(x, Solvable_SL)
             ]
             self.__solver_layers.reverse()
         return self.__solver_layers
@@ -46,7 +46,7 @@ class SolverLayerContainer(nn.Module):
     def __len__(self) -> int:
         return len(self._solver_layers)
 
-    def __iter__(self) -> Iterator[Base_SL]:
+    def __iter__(self) -> Iterator[Solvable_SL]:
         return iter(self._solver_layers)
 
     # fmt: off
@@ -57,7 +57,7 @@ class SolverLayerContainer(nn.Module):
     @overload
     def __getitem__(self, i: int) -> ReLU_SL: ...
     # fmt: on
-    def __getitem__(self, i: int) -> Base_SL:
+    def __getitem__(self, i: int) -> Solvable_SL:
         return self._solver_layers[i]
 
     @property
