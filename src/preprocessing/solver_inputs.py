@@ -1,4 +1,5 @@
-from typing import List, Tuple, Union
+import functools
+from typing import List, Sequence, Tuple, Union
 
 import torch
 from numpy import ndarray
@@ -55,16 +56,16 @@ class SolverInputs:
             torch.atleast_1d(ensure_tensor(x).float().squeeze()) for x in p_list
         ]
 
+        if not skip_validation:
+            self._validate_tensors_match_model()
+            self._validate_types()
+            self._validate_tensor_dtype()
+            self._validate_dimensions()
+
         self._unflatten_bounds(is_hwc)
 
         if is_hwc:
             self._convert_hwc_to_chw()
-
-        if skip_validation:
-            return
-        self._validate_types()
-        self._validate_tensor_dtype()
-        self._validate_dimensions()
 
     def save_all_except_model(self, save_file_path: str) -> None:
         """Saves all the inputs except the model.
@@ -259,6 +260,40 @@ class SolverInputs:
             assert self.P_list[i].shape == self.P_hat_list[i].shape, f"Expected `P_list[{i}]` and `P_hat_list[{i}]` to be of same shape, but got {tuple(self.P_list[i].shape)} and {tuple(self.P_hat_list[i].shape)} respectively."
             assert self.p_list[i].size(0) == self.P_list[i].size(0), f"Expected len(p_list[{i}]) == len(P_list[{i}]), but got {self.p_list[i].size(0)} == {self.P_list[i].size(0)}."
         # fmt: on
+
+    def _validate_tensors_match_model(self) -> None:
+        def product(s: Sequence[int]) -> int:
+            """Gets the product of all elements (eg. `product((1, 2, 3)) == 6`)."""
+            return functools.reduce(lambda x, y: x * y, s)
+
+        _relu_nodes = (node for node in self.graph_wrapper if isinstance(node.module, nn.ReLU))
+        relu_shapes = [relu.unbatched_input_shape for relu in _relu_nodes]
+        num_relu_layers = len(relu_shapes)
+        unbatched_output_shape = self.graph_wrapper.last_child.unbatched_output_shape
+
+        # fmt: off
+        assert len(unbatched_output_shape) == 1, f"Expected unbatched output to be 1D, but got {len(unbatched_output_shape)}D."
+        num_output_neurons = unbatched_output_shape[0]
+        assert 0 <= self.ground_truth_neuron_index < num_output_neurons, f"Expected 0 <= ground_truth_neuron_index < {num_output_neurons}, but got {self.ground_truth_neuron_index} ({num_output_neurons} is the num of neurons in the output layer)."
+        assert self.H.size(1) == num_output_neurons, f"Expected H.size(1) == num of output neurons, but got {self.H.size(1)} == {num_output_neurons}."
+        assert len(self.L_list) == len(self.U_list) == num_relu_layers + 1, f"Expected len(L_list) == len(U_list) == num of relu layers in `model` + 1 (+ input layer), but got {len(self.L_list)} == {len(self.U_list)} == {num_relu_layers + 1}."
+        assert len(self.P_list) == len(self.P_hat_list) == len(self.p_list) == num_relu_layers, f"Expected len(P_list) == len(P_hat_list) == len(p_list) == num of relu layers in `model`, but got {len(self.P_list)} == {len(self.P_hat_list)} == {len(self.p_list)} == {num_relu_layers}."
+        # fmt: on
+
+        # Check bounds for each layer.
+        bounds_error_msg = "Expected num of elements in L_list[{i}], U_list[{i}] and model's input to all match, but got {self.L_list[i].numel()}, {self.U_list[i].numel()}, {product(shape)}."
+
+        # Input layer.
+        assert self.L_list[0].numel() == self.U_list[0].numel() == product(self.input_shape), bounds_error_msg.format(i=0, shape=self.input_shape)  # fmt: skip
+
+        # Intermediate layers.
+        for i, relu_shape in enumerate(relu_shapes, start=1):
+            L, U, P, P_hat, p = self.L_list[i], self.U_list[i], self.P_list[i - 1], self.P_hat_list[i - 1], self.p_list[i - 1]  # fmt: skip
+
+            assert L.numel() == U.numel() == product(relu_shape), bounds_error_msg.format(i=i, shape=relu_shape)  # fmt: skip
+            unstable_mask = (L < 0) & (U > 0)
+            num_unstable = int(unstable_mask.sum().item())
+            assert P.size(1) == P_hat.size(1) == num_unstable, f"Expected P_list[{i}].size(1) == P_hat_list[{i}].size(1) == num of unstable neurons for ReLU {i}, but got {P.size(1)} == {P_hat.size(1)} == {num_unstable}."  # fmt: skip
 
 
 def ensure_tensor(array_or_tensor: Union[ndarray, Tensor]) -> Tensor:
