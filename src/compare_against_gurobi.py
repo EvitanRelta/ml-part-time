@@ -52,6 +52,13 @@ def compare_against_gurobi(
     gurobi_L_list = gurobi_L_list[:-1]
     gurobi_U_list = gurobi_U_list[:-1]
 
+    # Ensure bounds are flattened.
+    new_L_list = [L.flatten() for L in new_L_list]
+    new_U_list = [U.flatten() for U in new_U_list]
+    unstable_masks = [mask.flatten() for mask in unstable_masks]
+    initial_L_list = [L.flatten() for L in initial_L_list]
+    initial_U_list = [U.flatten() for U in initial_U_list]
+
     # Only consider input + unstable intermediates neurons.
     masks = unstable_masks[1:]
     unstable_L_list = [initial_L_list[0]] + [
