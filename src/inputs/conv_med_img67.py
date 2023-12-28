@@ -18,6 +18,8 @@ model, input_shape = load_onnx_model(ONNX_MODEL_PATH, return_input_shape=True)
 remove_first_n_modules(model, 4)  # Remove norm layers.
 
 loaded: SolverInputsSavedDict = torch.load(OTHER_INPUTS_PATH)
+loaded["L_list"] = loaded["L_list"][:-1]
+loaded["U_list"] = loaded["U_list"][:-1]
 solver_inputs = SolverInputs(model, input_shape, **loaded)
 
 gurobi_results: GurobiResults = torch.load(GUROBI_RESULTS_PATH)
