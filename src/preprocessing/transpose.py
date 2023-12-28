@@ -3,13 +3,7 @@ from typing import Tuple
 import torch
 from torch import nn
 
-from .class_definitions import (
-    Bias,
-    Conv2dFlattenBias,
-    ConvTranspose2dFlattenNoBias,
-    LinearBias,
-    UnaryForward,
-)
+from .class_definitions import Bias, Conv2dBias, LinearBias, UnaryForward
 
 
 def transpose_layer(
@@ -32,7 +26,7 @@ def transpose_layer(
     if isinstance(layer, nn.Linear):
         return transpose_linear(layer)
     if isinstance(layer, nn.Conv2d):
-        return transpose_conv2d(layer, output_shape)
+        return transpose_conv2d(layer)
     if isinstance(layer, nn.Flatten):
         return transpose_flatten(layer, input_shape)
     raise NotImplementedError()
@@ -53,10 +47,21 @@ def transpose_linear(linear: nn.Linear) -> Tuple[nn.Linear, Bias]:
     return transposed_linear, LinearBias(bias.clone().detach())
 
 
-def transpose_conv2d(
-    conv2d: nn.Conv2d,
-    output_shape: Tuple[int, ...],
-) -> Tuple[UnaryForward, Bias]:
+def transpose_conv2d(conv2d: nn.Conv2d) -> Tuple[UnaryForward, Bias]:
+    weight = conv2d.weight
+
+    # Create a new ConvTranspose2d layer with same parameters and without bias
+    transposed_conv2d = nn.ConvTranspose2d(
+        in_channels=conv2d.in_channels,
+        out_channels=conv2d.out_channels,
+        kernel_size=conv2d.kernel_size,  # type: ignore
+        stride=conv2d.stride,  # type: ignore
+        padding=conv2d.padding,  # type: ignore
+        dilation=conv2d.dilation,  # type: ignore
+        groups=conv2d.groups,
+        bias=False,
+    )
+    transposed_conv2d.weight = nn.Parameter(weight.clone().detach(), requires_grad=False)
     bias = (
         conv2d.bias.clone().detach()
         if conv2d.bias is not None
@@ -64,8 +69,8 @@ def transpose_conv2d(
     )
 
     return (
-        ConvTranspose2dFlattenNoBias(conv2d, output_shape[-3:]),  # type: ignore
-        Conv2dFlattenBias(bias),
+        transposed_conv2d,
+        Conv2dBias(bias),
     )
 
 

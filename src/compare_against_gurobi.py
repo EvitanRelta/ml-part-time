@@ -40,25 +40,35 @@ def compare_against_gurobi(
     unstable_masks = [mask.to(device) for mask in unstable_masks]
     initial_L_list = [L.to(device) for L in initial_L_list]
     initial_U_list = [U.to(device) for U in initial_U_list]
-    gurobi_results["L_list_unstable_only"] = [
-        L.to(device) for L in gurobi_results["L_list_unstable_only"]
-    ]
-    gurobi_results["U_list_unstable_only"] = [
-        U.to(device) for U in gurobi_results["U_list_unstable_only"]
-    ]
+    gurobi_L_list = [L.to(device) for L in gurobi_results["L_list_unstable_only"]]
+    gurobi_U_list = [U.to(device) for U in gurobi_results["U_list_unstable_only"]]
+
+    # Remove output bounds, as it doesn't change.
+    new_L_list = new_L_list[:-1]
+    new_U_list = new_U_list[:-1]
+    unstable_masks = unstable_masks[:-1]
+    initial_L_list = initial_L_list[:-1]
+    initial_U_list = initial_U_list[:-1]
+    gurobi_L_list = gurobi_L_list[:-1]
+    gurobi_U_list = gurobi_U_list[:-1]
+
+    # Ensure bounds are flattened.
+    new_L_list = [L.flatten() for L in new_L_list]
+    new_U_list = [U.flatten() for U in new_U_list]
+    unstable_masks = [mask.flatten() for mask in unstable_masks]
+    initial_L_list = [L.flatten() for L in initial_L_list]
+    initial_U_list = [U.flatten() for U in initial_U_list]
 
     # Only consider input + unstable intermediates neurons.
-    masks = unstable_masks[1:-1]
+    masks = unstable_masks[1:]
     unstable_L_list = [initial_L_list[0]] + [
-        L[mask] for (L, mask) in zip(initial_L_list[1:-1], masks)
+        L[mask] for (L, mask) in zip(initial_L_list[1:], masks)
     ]
     unstable_U_list = [initial_U_list[0]] + [
-        U[mask] for (U, mask) in zip(initial_U_list[1:-1], masks)
+        U[mask] for (U, mask) in zip(initial_U_list[1:], masks)
     ]
-    unstable_new_L_list = [new_L_list[0]] + [L[mask] for (L, mask) in zip(new_L_list[1:-1], masks)]
-    unstable_new_U_list = [new_U_list[0]] + [U[mask] for (U, mask) in zip(new_U_list[1:-1], masks)]
-    gurobi_L_list = gurobi_results["L_list_unstable_only"][:-1]
-    gurobi_U_list = gurobi_results["U_list_unstable_only"][:-1]
+    unstable_new_L_list = [new_L_list[0]] + [L[mask] for (L, mask) in zip(new_L_list[1:], masks)]
+    unstable_new_U_list = [new_U_list[0]] + [U[mask] for (U, mask) in zip(new_U_list[1:], masks)]
 
     list_len: int = len(unstable_new_L_list)
 
