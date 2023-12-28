@@ -4,8 +4,6 @@ import torch
 from torch import Tensor, nn
 from typing_extensions import override
 
-from ...preprocessing.class_definitions import Bias, UnaryForward
-from ...preprocessing.transpose import UnaryForward
 from .base_class import Base_SL
 
 
@@ -18,8 +16,6 @@ class Output_SL(Base_SL):
     @override
     def __init__(
         self,
-        transposed_layer: UnaryForward,
-        bias_module: Bias,
         L: Tensor,
         U: Tensor,
         C: Tensor,
@@ -27,8 +23,6 @@ class Output_SL(Base_SL):
         d: Tensor,
     ) -> None:
         super().__init__(L, U, C)
-        self.transposed_layer = transposed_layer
-        self.bias_module = bias_module
 
         self.H: Tensor
         self.d: Tensor
@@ -44,11 +38,11 @@ class Output_SL(Base_SL):
 
     def forward(self) -> Tuple[Tensor, Tensor, Tensor]:
         # Assign to local variables, so that they can be used w/o `self.` prefix.
-        transposed_layer, bias_module, H, d, gamma = self.transposed_layer, self.bias_module, self.H, self.d, self.gamma  # fmt: skip
+        H, d, gamma = self.H, self.d, self.gamma
 
         V = (-H.T @ gamma.T).T
         assert V.dim() == 2
-        return V, transposed_layer.forward(V), gamma @ d - bias_module.forward(V)
+        return V, torch.zeros((self.num_batches,)), gamma @ d
 
     @override
     def clamp_parameters(self) -> None:

@@ -12,18 +12,17 @@ class NamedSolverInputs:
         self.d = inputs.d
 
         graph_wrapper = GraphModuleWrapper(inputs.model, inputs.input_shape)
-        last_node = graph_wrapper.last_child
         self.C_dict: Dict[str, Tensor] = {
             "input_layer": inputs.L_list[0],
-            last_node.name: inputs.L_list[-1],
+            "output_layer": inputs.L_list[-1],
         }
         self.L_dict: Dict[str, Tensor] = {
             "input_layer": inputs.L_list[0],
-            last_node.name: inputs.L_list[-1],
+            "output_layer": inputs.L_list[-1],
         }
         self.U_dict: Dict[str, Tensor] = {
             "input_layer": inputs.U_list[0],
-            last_node.name: inputs.U_list[-1],
+            "output_layer": inputs.U_list[-1],
         }
         self.P_dict: Dict[str, Tensor] = {}
         self.P_hat_dict: Dict[str, Tensor] = {}

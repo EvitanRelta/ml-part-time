@@ -22,31 +22,22 @@ from .transpose import transpose_layer
 def map_modules(
     modules: Dict[str, nn.Module],
     named_solver_inputs: NamedSolverInputs,
-    initial_output_module_name: str,
 ) -> Dict[str, nn.Module]:
     mapped_modules: Dict[str, nn.Module] = {
         "input_layer": Input_SL(
             L=named_solver_inputs.L_dict["input_layer"],
             U=named_solver_inputs.U_dict["input_layer"],
             C=named_solver_inputs.C_dict["input_layer"],
-        )
+        ),
+        "output_layer": Output_SL(
+            L=named_solver_inputs.L_dict["output_layer"],
+            U=named_solver_inputs.U_dict["output_layer"],
+            C=named_solver_inputs.C_dict["output_layer"],
+            H=named_solver_inputs.H,
+            d=named_solver_inputs.d,
+        ),
     }
     for name, module in modules.items():
-        if name == initial_output_module_name:
-            input_shape = named_solver_inputs.input_shapes[name]
-            output_shape = named_solver_inputs.output_shapes[name]
-            transposed_layer, bias_module = transpose_layer(module, input_shape, output_shape)
-            mapped_modules[name] = Output_SL(
-                transposed_layer=transposed_layer,
-                bias_module=bias_module,
-                L=named_solver_inputs.L_dict[name],
-                U=named_solver_inputs.U_dict[name],
-                C=named_solver_inputs.C_dict[name],
-                H=named_solver_inputs.H,
-                d=named_solver_inputs.d,
-            )
-            continue
-
         if isinstance(module, nn.BatchNorm2d):
             continue
 
@@ -91,8 +82,10 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     preprocessing_utils.freeze_model(model)
     DG = pytorch_graph_to_networkx(model.graph)
     DG = cast(nx.DiGraph, DG.reverse())
-    DG = cast(nx.DiGraph, nx.relabel_nodes(DG, {"input_1": "input_layer"}))
-    DG.remove_node("output")
+    DG = cast(
+        nx.DiGraph,
+        nx.relabel_nodes(DG, {"input_1": "input_layer", "output": "output_layer"}),
+    )
     DG.add_node("output")
     DG.add_edge("input_layer", "output")
 
@@ -115,6 +108,6 @@ def build_solver_graph_module(inputs: SolverInputs) -> fx.GraphModule:
     named_solver_inputs = NamedSolverInputs(inputs, C_list)
 
     return fx.GraphModule(
-        root=map_modules(submodules, named_solver_inputs, output_module_name),
+        root=map_modules(submodules, named_solver_inputs),
         graph=networkx_to_pytorch_graph(DG, has_input=False),
     )
