@@ -33,6 +33,7 @@ class SolverInputs:
     ) -> None:
         self.model: fx.GraphModule = model
         self.input_shape: Tuple[int, ...] = input_shape
+        self.graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
         self.ground_truth_neuron_index: int = ground_truth_neuron_index
 
         # Convert to tensor, float dtype, and correct dimensionality if necessary.
@@ -154,8 +155,7 @@ class SolverInputs:
         }
 
     def _unflatten_bounds(self, is_hwc: bool) -> None:
-        graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
-        first_node = graph_wrapper.first_child
+        first_node = self.graph_wrapper.first_child
 
         shape = first_node.unbatched_input_shape
         if is_hwc and len(shape) == 3:
