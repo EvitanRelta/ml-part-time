@@ -164,23 +164,14 @@ class SolverInputs:
         self.L_list[0] = self.L_list[0].reshape(shape)
         self.U_list[0] = self.U_list[0].reshape(shape)
 
-        i = 1
-        node = first_node
-        while True:
-            if len(node.children) == 0:
-                break
-            node = node.children[0]  # Assume there's only 1 child.
-            if not isinstance(node.module, nn.ReLU):
-                continue
-
-            shape = node.unbatched_output_shape
+        relu_nodes = (node for node in self.graph_wrapper if isinstance(node.module, nn.ReLU))
+        for i, relu in enumerate(relu_nodes, start=1):
+            shape = relu.unbatched_output_shape
             if is_hwc and len(shape) == 3:
                 C, H, W = shape
                 shape = (H, W, C)
             self.L_list[i] = self.L_list[i].reshape(shape)
             self.U_list[i] = self.U_list[i].reshape(shape)
-
-            i += 1
 
     def _convert_hwc_to_chw(self) -> None:
         """Converts the tensor inputs from Height-Width-Channel (HWC) format to
