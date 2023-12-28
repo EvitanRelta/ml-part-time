@@ -44,11 +44,6 @@ def compare_against_gurobi(
     gurobi_U_list = [U.to(device) for U in gurobi_results["U_list_unstable_only"]]
 
     # Remove output bounds, as it doesn't change.
-    new_L_list = new_L_list[:-1]
-    new_U_list = new_U_list[:-1]
-    unstable_masks = unstable_masks[:-1]
-    initial_L_list = initial_L_list[:-1]
-    initial_U_list = initial_U_list[:-1]
     gurobi_L_list = gurobi_L_list[:-1]
     gurobi_U_list = gurobi_U_list[:-1]
 

@@ -1,4 +1,4 @@
-from typing import Iterator, List, Literal, Tuple, overload
+from typing import List, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -7,9 +7,7 @@ from ...preprocessing import preprocessing_utils
 from ...preprocessing.build import build_solver_graph_module
 from ...preprocessing.solver_inputs import SolverInputs
 from .base_class import Solvable_SL
-from .input_layer import Input_SL
 from .output_layer import Output_SL
-from .relu import ReLU_SL
 
 
 class SolverLayerContainer(nn.Module):
@@ -23,67 +21,60 @@ class SolverLayerContainer(nn.Module):
         C_list, self.solve_coords = preprocessing_utils.get_C_for_layer(
             layer_index, self.unstable_masks
         )
-        for i in range(len(self)):
-            self[i].set_C_and_reset_parameters(C_list[i])
+        for solvable_layer, C in zip(self.solvable_layers, C_list):
+            solvable_layer.set_C_and_reset_parameters(C)
+
+        self.output_layer.reset_parameters(num_batches=C_list[0].size(0))
 
     def forward(self) -> Tuple[Tensor, Tensor]:
         return self.graph_module.forward()
 
     def clamp_parameters(self):
         with torch.no_grad():
-            for layer in self:
+            for layer in self.solvable_layers:
                 layer.clamp_parameters()
 
+            self.output_layer.clamp_parameters()
+
     @property
-    def _solver_layers(self) -> List[Solvable_SL]:
-        if not hasattr(self, "__solver_layers"):
-            self.__solver_layers: List[Solvable_SL] = [
+    def solvable_layers(self) -> List[Solvable_SL]:
+        if not hasattr(self, "_solvable_layers"):
+            self._solvable_layers: List[Solvable_SL] = [
                 x for x in self.graph_module.children() if isinstance(x, Solvable_SL)
             ]
-            self.__solver_layers.reverse()
-        return self.__solver_layers
+            self._solvable_layers.reverse()
+        return self._solvable_layers
 
-    def __len__(self) -> int:
-        return len(self._solver_layers)
-
-    def __iter__(self) -> Iterator[Solvable_SL]:
-        return iter(self._solver_layers)
-
-    # fmt: off
-    @overload
-    def __getitem__(self, i: Literal[0]) -> Input_SL: ...
-    @overload
-    def __getitem__(self, i: Literal[-1]) -> Output_SL: ...
-    @overload
-    def __getitem__(self, i: int) -> ReLU_SL: ...
-    # fmt: on
-    def __getitem__(self, i: int) -> Solvable_SL:
-        return self._solver_layers[i]
+    @property
+    def output_layer(self) -> Output_SL:
+        output_layer = self.graph_module.get_submodule("output_layer")
+        assert isinstance(output_layer, Output_SL)
+        return output_layer
 
     @property
     def L_list(self) -> List[Tensor]:
-        return [x.L for x in self]
+        return [x.L for x in self.solvable_layers]
 
     @property
     def U_list(self) -> List[Tensor]:
-        return [x.U for x in self]
+        return [x.U for x in self.solvable_layers]
 
     @property
     def H(self) -> Tensor:
-        return self[-1].H
+        return self.output_layer.H
 
     @property
     def stably_act_masks(self) -> List[Tensor]:
-        return [x.stably_act_mask for x in self]
+        return [x.stably_act_mask for x in self.solvable_layers]
 
     @property
     def stably_deact_masks(self) -> List[Tensor]:
-        return [x.stably_deact_mask for x in self]
+        return [x.stably_deact_mask for x in self.solvable_layers]
 
     @property
     def unstable_masks(self) -> List[Tensor]:
-        return [x.unstable_mask for x in self]
+        return [x.unstable_mask for x in self.solvable_layers]
 
     @property
     def C_list(self) -> List[Tensor]:
-        return [x.C for x in self]
+        return [x.C for x in self.solvable_layers]

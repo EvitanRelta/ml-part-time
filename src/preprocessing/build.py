@@ -23,6 +23,7 @@ def map_modules(
     modules: Dict[str, nn.Module],
     named_solver_inputs: NamedSolverInputs,
 ) -> Dict[str, nn.Module]:
+    num_batches: int = named_solver_inputs.C_dict["input_layer"].size(0)
     mapped_modules: Dict[str, nn.Module] = {
         "input_layer": Input_SL(
             L=named_solver_inputs.L_dict["input_layer"],
@@ -30,9 +31,7 @@ def map_modules(
             C=named_solver_inputs.C_dict["input_layer"],
         ),
         "output_layer": Output_SL(
-            L=named_solver_inputs.L_dict["output_layer"],
-            U=named_solver_inputs.U_dict["output_layer"],
-            C=named_solver_inputs.C_dict["output_layer"],
+            num_batches=num_batches,
             H=named_solver_inputs.H,
             d=named_solver_inputs.d,
         ),

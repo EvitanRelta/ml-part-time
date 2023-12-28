@@ -69,7 +69,7 @@ def get_C_for_layer(
     """
     device = unstable_masks[0].device
     num_layers = len(unstable_masks)
-    assert layer_index < num_layers - 1
+    assert layer_index < num_layers
 
     C_list: List[Tensor] = []
     coords: List[NeuronCoords] = []
