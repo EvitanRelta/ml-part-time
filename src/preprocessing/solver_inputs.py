@@ -6,6 +6,7 @@ from numpy import ndarray
 from torch import Tensor, fx, nn
 
 from ..inputs.save_file_types import GurobiResults, SolverInputsSavedDict
+from ..preprocessing.graph_converters import replace_reshape_with_flatten
 from ..preprocessing.graph_module_wrapper import GraphModuleWrapper
 from ..preprocessing.hwc_to_chw import (
     flattened_hwc_to_chw,
@@ -32,7 +33,7 @@ class SolverInputs:
         is_hwc: bool = True,
         skip_validation: bool = False,
     ) -> None:
-        self.model: fx.GraphModule = model
+        self.model: fx.GraphModule = replace_reshape_with_flatten(model)
         self.input_shape: Tuple[int, ...] = input_shape
         self.graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
         self.ground_truth_neuron_index: int = ground_truth_neuron_index
