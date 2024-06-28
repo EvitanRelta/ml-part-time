@@ -75,14 +75,22 @@ def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
 
     # Remove the reshapes' references to the `initializers` module, and replace
     # each reshape layer with `torch.nn.Flatten` layer.
-    for node in graph.nodes:
-        if node.op == "call_module" and isinstance(modules[node.target], OnnxReshape):
+    for node in cast(Iterator[fx.Node], graph.nodes):
+        if (
+            node.op == "call_module"
+            and isinstance(node.target, str)
+            and isinstance(modules[node.target], OnnxReshape)
+        ):
             node.args = (node.args[0],)
             modules[node.target] = nn.Flatten()
 
     # Finally remove the artifact `initializers` module.
-    for node in graph.nodes:
-        if node.op == "get_attr" and node.target.startswith("initializers"):
+    for node in cast(Iterator[fx.Node], graph.nodes):
+        if (
+            node.op == "get_attr"
+            and isinstance(node.target, str)
+            and node.target.startswith("initializers")
+        ):
             graph.erase_node(node)
 
     return fx.GraphModule(modules, graph)
