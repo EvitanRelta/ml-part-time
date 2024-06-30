@@ -75,7 +75,7 @@ class ReLU_SL(Solvable_SL):
 
         return (
             V,
-            torch.zeros_like(V_W_next),
+            V,
             torch.sum(
                 (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
                 / (U[unstable_mask] - L[unstable_mask]),
