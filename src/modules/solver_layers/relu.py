@@ -47,7 +47,7 @@ class ReLU_SL(Solvable_SL):
         set_zero_accum: bool = False,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         V_list, V_W_list, accum_sum_list = zip(*args)
-        V_W_next = torch.stack([x for x in V_W_list if x.shape != (0,)]).sum(dim=0)
+        V_W_next = torch.stack(V_W_list).sum(dim=0)
 
         if set_zero_accum:
             assert len(accum_sum_list) == 1
@@ -85,7 +85,7 @@ class ReLU_SL(Solvable_SL):
 
         return (
             V,
-            torch.zeros(0),
+            V,
             accum_sum
             + torch.sum(
                 (bracket_plus(V_hat) * U[unstable_mask] * L[unstable_mask])
