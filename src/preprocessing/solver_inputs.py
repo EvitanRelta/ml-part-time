@@ -11,7 +11,10 @@ from ..preprocessing.hwc_to_chw import (
     flattened_hwc_to_chw,
     flattened_unstable_hwc_to_chw,
 )
-from ..preprocessing.preprocessing_utils import replace_reshape_with_flatten
+from ..preprocessing.preprocessing_utils import (
+    remove_onnx_norm_layers,
+    replace_reshape_with_flatten,
+)
 from ..utils import load_onnx_model
 
 
@@ -34,6 +37,7 @@ class SolverInputs:
         skip_validation: bool = False,
     ) -> None:
         self.model: fx.GraphModule = replace_reshape_with_flatten(model)
+        remove_onnx_norm_layers(self.model)
         self.input_shape: Tuple[int, ...] = input_shape
         self.graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)
         self.ground_truth_neuron_index: int = ground_truth_neuron_index
