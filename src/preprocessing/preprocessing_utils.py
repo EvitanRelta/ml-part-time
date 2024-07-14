@@ -3,7 +3,11 @@ from typing import Iterable, Iterator, List, Tuple, cast
 
 import onnx2torch.node_converters
 import torch
-from onnx2torch.node_converters import OnnxReshape
+from onnx2torch.node_converters import (
+    OnnxBinaryMathOperation,
+    OnnxConstant,
+    OnnxReshape,
+)
 from torch import Tensor, fx, nn
 from typing_extensions import TypeAlias
 
@@ -149,3 +153,40 @@ def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
             graph.erase_node(node)
 
     return fx.GraphModule(modules, graph)
+
+
+def remove_onnx_norm_layers(model: fx.GraphModule) -> None:
+    """Mutably remove the ONNX normalization layers (if any) in `model`."""
+    modules = {name: module for name, module in model.named_children()}
+    graph = model.graph
+
+    nodes = cast(Iterator[fx.Node], iter(graph.nodes))
+    input_node = next(nodes)
+    nodes_to_remove: list[fx.Node] = []
+    for node in nodes:
+        if node.op != "call_module" or not isinstance(node.target, str):
+            continue
+
+        module = modules[node.target]
+        if isinstance(module, (OnnxConstant, OnnxBinaryMathOperation)):
+            nodes_to_remove.append(node)
+            continue
+
+        # Stop at first node that's not `OnnxConstant` or `OnnxBinaryMathOperation`.
+        if len(nodes_to_remove) == 0:
+            # If no nodes to remove, that means there's no norm layers, and thus
+            # must take in input node.
+            assert node.args[0] == input_node
+            return
+
+        assert len(node.args) == 1, "I'm assuming there's only 1 arg."
+        node.args = (input_node,)
+        break
+
+    # Remove in reversed order to avoid removing dependencies b4 dependent nodes.
+    for node in reversed(nodes_to_remove):
+        graph.erase_node(node)
+
+    # Recompile the graph
+    model.recompile()
+    model.delete_all_unused_submodules()
