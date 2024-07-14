@@ -1,7 +1,6 @@
 import itertools
 from typing import Iterable, Iterator, List, Tuple, cast
 
-import onnx2torch.node_converters
 import torch
 from onnx2torch.node_converters import (
     OnnxBinaryMathOperation,
@@ -13,10 +12,7 @@ from typing_extensions import TypeAlias
 
 
 def is_add_layer(module: nn.Module) -> bool:
-    return (
-        isinstance(module, onnx2torch.node_converters.OnnxBinaryMathOperation)
-        and module.math_op_function is torch.add
-    )
+    return isinstance(module, OnnxBinaryMathOperation) and module.math_op_function is torch.add
 
 
 def freeze_model(model: nn.Module) -> None:
