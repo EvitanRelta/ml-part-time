@@ -22,7 +22,7 @@ def freeze_model(model: nn.Module) -> None:
 
 
 def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
-    """Mutably remove the the first `n` number of modules from a
+    """Mutably remove the first `n` number of modules from a
     `torch.fx.GraphModule`.
 
     Args:
