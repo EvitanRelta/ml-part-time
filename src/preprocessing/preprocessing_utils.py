@@ -21,36 +21,6 @@ def freeze_model(model: nn.Module) -> None:
         param.requires_grad = False
 
 
-def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
-    """Mutably remove the first `n` number of modules from a
-    `torch.fx.GraphModule`.
-
-    Args:
-        graph_module (fx.GraphModule): `GraphModule` to remove the layers from.
-        n (int): Number of modules to remove.
-    """
-    nodes = cast(Iterator[fx.Node], iter(graph_module.graph.nodes))
-    input_node = next(nodes)  # Pop the input node, as we don't include that in the removal
-    nodes_to_remove = list(itertools.islice(nodes, n))
-    assert all(
-        len(node.users) == 1 for node in nodes_to_remove
-    ), "Failed assumption that all nodes to remove only has 1 user."
-
-    # Find the node that will be the new first node after the removal.
-    new_first_node = next(iter(nodes_to_remove[-1].users))
-
-    # Replace the argument of the first node after removal with the input node.
-    new_first_node.args = (input_node,)
-
-    # Remove the nodes, starting from the back.
-    for node in reversed(nodes_to_remove):
-        graph_module.graph.erase_node(node)
-
-    # Recompile the graph
-    graph_module.recompile()
-    graph_module.delete_all_unused_submodules()
-
-
 NeuronCoords: TypeAlias = Tuple[int, Tuple[int, ...]]
 """Coordinates for a neuron in the model, in the form `(layer_index, neuron_index_tuple)`."""
 
