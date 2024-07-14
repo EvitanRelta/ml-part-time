@@ -36,7 +36,8 @@ class SolverInputs:
         is_hwc: bool = True,
         skip_validation: bool = False,
     ) -> None:
-        self.model: fx.GraphModule = replace_reshape_with_flatten(model)
+        self.model = model
+        replace_reshape_with_flatten(self.model)
         remove_onnx_norm_layers(self.model)
         self.input_shape: Tuple[int, ...] = input_shape
         self.graph_wrapper = GraphModuleWrapper(self.model, self.input_shape)

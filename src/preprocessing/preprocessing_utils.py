@@ -116,13 +116,12 @@ def get_C_for_layer(
     return C_list, coords
 
 
-def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
-    """Destructively replace all `Reshape` layers in `model` with `torch.nn.Flatten`.
+def replace_reshape_with_flatten(model: fx.GraphModule) -> None:
+    """Mutably replace all `Reshape` layers in `model` with `torch.nn.Flatten`.
 
     This is for ONNX models that has `Reshape` layers inplace of `Flatten` which
     causes problems for our solver, and thus needs to be replaced.
     """
-    modules = {name: module for name, module in model.named_children()}
     graph = model.graph
 
     # The reshape layers will have an module named `initializers` which needs to
@@ -134,10 +133,10 @@ def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
         if (
             node.op == "call_module"
             and isinstance(node.target, str)
-            and isinstance(modules[node.target], OnnxReshape)
+            and isinstance(getattr(model, node.target), OnnxReshape)
         ):
             node.args = (node.args[0],)
-            modules[node.target] = nn.Flatten()
+            setattr(model, node.target, nn.Flatten())
 
     # Finally remove the artifact `initializers` module.
     for node in cast(Iterable[fx.Node], graph.nodes):
@@ -148,7 +147,9 @@ def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
         ):
             graph.erase_node(node)
 
-    return fx.GraphModule(modules, graph)
+    # Recompile the graph and remove unused submodules
+    model.recompile()
+    model.delete_all_unused_submodules()
 
 
 def remove_onnx_norm_layers(model: fx.GraphModule) -> None:
