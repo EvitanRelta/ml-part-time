@@ -1,9 +1,9 @@
 import itertools
-from typing import Iterator, List, Tuple, cast
+from typing import Iterable, Iterator, List, Tuple, cast
 
 import onnx2torch.node_converters
 import torch
-from onnx2torch.node_converters.reshape import OnnxReshape
+from onnx2torch.node_converters import OnnxReshape
 from torch import Tensor, fx, nn
 from typing_extensions import TypeAlias
 
@@ -30,7 +30,7 @@ def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
         n (int): Number of modules to remove.
     """
     nodes = cast(Iterator[fx.Node], iter(graph_module.graph.nodes))
-    next(nodes)  # Pop the input node, as we don't include that in the removal
+    input_node = next(nodes)  # Pop the input node, as we don't include that in the removal
     nodes_to_remove = list(itertools.islice(nodes, n))
     assert all(
         len(node.users) == 1 for node in nodes_to_remove
@@ -40,12 +40,10 @@ def remove_first_n_modules(graph_module: fx.GraphModule, n: int) -> None:
     new_first_node = next(iter(nodes_to_remove[-1].users))
 
     # Replace the argument of the first node after removal with the input node.
-    input_node = next(iter(graph_module.graph.nodes))
     new_first_node.args = (input_node,)
 
     # Remove the nodes, starting from the back.
-    nodes_to_remove.reverse()
-    for node in nodes_to_remove:
+    for node in reversed(nodes_to_remove):
         graph_module.graph.erase_node(node)
 
     # Recompile the graph
@@ -132,7 +130,7 @@ def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
 
     # Remove the reshapes' references to the `initializers` module, and replace
     # each reshape layer with `torch.nn.Flatten` layer.
-    for node in cast(Iterator[fx.Node], graph.nodes):
+    for node in cast(Iterable[fx.Node], graph.nodes):
         if (
             node.op == "call_module"
             and isinstance(node.target, str)
@@ -142,7 +140,7 @@ def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
             modules[node.target] = nn.Flatten()
 
     # Finally remove the artifact `initializers` module.
-    for node in cast(Iterator[fx.Node], graph.nodes):
+    for node in cast(Iterable[fx.Node], graph.nodes):
         if (
             node.op == "get_attr"
             and isinstance(node.target, str)
