@@ -3,6 +3,7 @@ from typing import Iterator, List, Tuple, cast
 
 import onnx2torch.node_converters
 import torch
+from onnx2torch.node_converters.reshape import OnnxReshape
 from torch import Tensor, fx, nn
 from typing_extensions import TypeAlias
 
@@ -115,3 +116,38 @@ def get_C_for_layer(
             coords.append((i, index))
         C_list.append(C)
     return C_list, coords
+
+
+def replace_reshape_with_flatten(model: fx.GraphModule) -> fx.GraphModule:
+    """Destructively replace all `Reshape` layers in `model` with `torch.nn.Flatten`.
+
+    This is for ONNX models that has `Reshape` layers inplace of `Flatten` which
+    causes problems for our solver, and thus needs to be replaced.
+    """
+    modules = {name: module for name, module in model.named_children()}
+    graph = model.graph
+
+    # The reshape layers will have an module named `initializers` which needs to
+    # be removed.
+
+    # Remove the reshapes' references to the `initializers` module, and replace
+    # each reshape layer with `torch.nn.Flatten` layer.
+    for node in cast(Iterator[fx.Node], graph.nodes):
+        if (
+            node.op == "call_module"
+            and isinstance(node.target, str)
+            and isinstance(modules[node.target], OnnxReshape)
+        ):
+            node.args = (node.args[0],)
+            modules[node.target] = nn.Flatten()
+
+    # Finally remove the artifact `initializers` module.
+    for node in cast(Iterator[fx.Node], graph.nodes):
+        if (
+            node.op == "get_attr"
+            and isinstance(node.target, str)
+            and node.target.startswith("initializers")
+        ):
+            graph.erase_node(node)
+
+    return fx.GraphModule(modules, graph)

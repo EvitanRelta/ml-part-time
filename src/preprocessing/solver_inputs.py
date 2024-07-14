@@ -6,12 +6,12 @@ from numpy import ndarray
 from torch import Tensor, fx, nn
 
 from ..inputs.save_file_types import GurobiResults, SolverInputsSavedDict
-from ..preprocessing.graph_converters import replace_reshape_with_flatten
 from ..preprocessing.graph_module_wrapper import GraphModuleWrapper
 from ..preprocessing.hwc_to_chw import (
     flattened_hwc_to_chw,
     flattened_unstable_hwc_to_chw,
 )
+from ..preprocessing.preprocessing_utils import replace_reshape_with_flatten
 from ..utils import load_onnx_model
 
 
