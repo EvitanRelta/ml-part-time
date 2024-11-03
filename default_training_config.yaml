@@ -9,8 +9,9 @@
 # Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 1.
 max_lr: 1
 
-# Min learning-rate to decay until.
-# The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-6.
+# Min learning-rate to decay until. When this LR is reached, training will
+# be stopped by our `EarlyStopHandler`.
+# The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-4.
 min_lr: 1.0e-4
 
 # Factor by which the learning rate will be reduced.
@@ -27,26 +28,13 @@ reduce_lr_threshold: 1.0e-3
 
 
 # ==============================================================================
-#                             Early-stopping configs
-# ==============================================================================
-# Num. of epochs with no improvement, after which training should be stopped.
-# Defaults to 40.
-stop_patience: 40
-
-# Threshold to determine whether there's "no improvement" for early-stopping.
-# No improvement is when `current_loss >= best_loss * (1 - threshold)`.
-# Defaults to 1e-3.
-stop_threshold: 1.0e-3
-
-
-# ==============================================================================
 #                                  Misc. configs
 # ==============================================================================
-# Whether to run the adversarial check. Defaults to True.
-run_adv_check: True
+# Whether to disable the adversarial check. Defaults to False.
+disable_adv_check: False
 
 # Perform adversarial check every `num_epoch_adv_check` epochs. Only has an effect when
-# `run_adv_check=True`. Defaults to 10.
+# `disable_adv_check=False`. Defaults to 10.
 num_epoch_adv_check: 10
 
 # Whether to disable tqdm's progress bar during training. Defaults to False.
