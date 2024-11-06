@@ -40,6 +40,7 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
     theta_list: List[Tensor] = []
 
     epoch = 1
+    min_loss = float("inf")
     pbar = tqdm(
         desc="Training",
         total=None,
@@ -55,6 +56,8 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
 
         loss = -max_objective.sum()
         loss_float = loss.item()
+
+        min_loss = min(min_loss, loss_float)
 
         # Backward pass and optimization.
         optimizer.zero_grad()
@@ -74,11 +77,13 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
             theta_list = []
 
         current_lr = optimizer.param_groups[0]["lr"]
-        pbar.set_postfix({"Loss": loss_float, "LR": current_lr})
+        pbar.set_postfix(
+            {"Loss": f"{loss_float:.3e}", "Min Loss": f"{min_loss:.3e}", "LR": current_lr}
+        )
         pbar.update()
 
         if early_stop_handler.is_early_stopped(current_lr):
-            pbar.set_description(f"Training stopped at epoch {epoch}, Loss: {loss_float}")
+            pbar.set_description(f"Training stopped at epoch {epoch}, Loss: {loss_float:.1f}, Min Loss: {min_loss:.1f}")
             pbar.close()
             break
 
