@@ -3,10 +3,10 @@ from typing import List
 import torch
 from torch import Tensor
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.autonotebook import tqdm
 
 from ..modules.Solver import Solver
+from .custom_lr_schedulers import ReduceLROnRecentPlateau
 from .EarlyStopHandler import EarlyStopHandler
 from .TrainingConfig import TrainingConfig
 
@@ -28,7 +28,7 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
             convergence, `True` if training was stopped prematurely due to being falsified.
     """
     optimizer = Adam(solver.parameters(), config.max_lr)
-    scheduler = ReduceLROnPlateau(
+    scheduler = ReduceLROnRecentPlateau(
         optimizer,
         factor=config.reduce_lr_factor,
         patience=config.reduce_lr_patience,
