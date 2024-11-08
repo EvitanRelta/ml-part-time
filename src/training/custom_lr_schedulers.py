@@ -78,15 +78,17 @@ class ReduceLROnRecentPlateau(ReduceLROnPlateau):
         )
         self.loss_window: List[float] = []
         self.window_size = 2 * patience
+        self.num_since_better = 0
 
     def is_better(self, a, best):
-        if len(self.loss_window) < self.window_size:
-            return super().is_better(a, best)
-
-        window_min = min(self.loss_window[-self.window_size :])
-        rel_epsilon = 1.0 - self.threshold
-        return a < window_min * rel_epsilon
+        if super().is_better(a, best):
+            self.num_since_better = 0
+            return True
+        self.num_since_better += 1
+        return False
 
     def step(self, metrics: float, epoch: Optional[int] = None) -> None:
+        if self.num_since_better >= self.window_size:
+            self.best = self.loss_window[-self.window_size]
         super().step(metrics, epoch)
         self.loss_window.append(float(metrics))
