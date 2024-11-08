@@ -1,3 +1,4 @@
+import dataclasses
 from typing import List, Literal, Tuple, Union, overload
 
 import torch
@@ -47,8 +48,19 @@ def solve(
     new_L_list: List[Tensor] = []
     new_U_list: List[Tensor] = []
     for layer_index in range(len(solver.layers.solvable_layers)):
-        solver.reset_and_solve_for_layer(layer_index)
-        is_falsified = train(solver, training_config)
+        for _ in range(3):  # try training 3 times, reducing starting LR up to 0.001
+            solver.reset_and_solve_for_layer(layer_index)
+            is_train_success, is_falsified = train(solver, training_config)
+            if is_train_success:
+                break
+            # If training failed due to too high LR, reduce LR and try again.
+            print("Training failed. Reducing LR and trying again...")
+            training_config = dataclasses.replace(training_config)  # copy config
+            training_config.max_lr = training_config.max_lr * 0.1  # reduce to 10% of previous LR
+
+        if not is_train_success:
+            raise Exception("Failed to train.")
+
         if is_falsified:
             return (True, None, None, solver) if return_solver else (True, None, None)
 

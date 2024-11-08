@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch import Tensor
@@ -11,7 +11,7 @@ from .EarlyStopHandler import EarlyStopHandler
 from .TrainingConfig import TrainingConfig
 
 
-def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
+def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> Tuple[bool, bool]:
     """Train `solver` until convergence or until the problem is falsified, and
     return whether the problem was falsified.
 
@@ -24,8 +24,10 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
             Defaults to TrainingConfig().
 
     Returns:
-        bool: Whether the problem was falsified. `False` if `solver` was trained to \
-            convergence, `True` if training was stopped prematurely due to being falsified.
+        Tuple[bool, bool]: `(is_train_success, is_falsified)` - `is_train_success` is whether \
+            the training was successful. `False` means the training was stopped due to \
+            instability, and you should retrain with lower LR. `is_falsified` is whether the \
+            problem was falsified and thus training was stopped prematurely.
     """
     optimizer = Adam(solver.parameters(), config.max_lr)
     scheduler = ReduceLROnRecentPlateau(
@@ -56,8 +58,15 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
 
         loss = -max_objective.sum()
         loss_float = loss.item()
-
         min_loss = min(min_loss, loss_float)
+
+        # If loss deviates too far from best loss, training is considered failed
+        # and starting LR should be reduced to make the training more stable.
+        if loss_float > 10 * min_loss:
+            print(
+                f"\nCurrent loss {loss_float:.2e} deviated too far from min loss {min_loss:.2e}. Stopping training..."
+            )
+            return False, False
 
         # Backward pass and optimization.
         optimizer.zero_grad()
@@ -73,7 +82,7 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
             # If it fails, stop prematurely. If it passes, purge the
             # accumulated thetas to free up memory.
             if is_falsified_by_concrete_inputs(solver, theta_list):
-                return True
+                return True, True
             theta_list = []
 
         current_lr = optimizer.param_groups[0]["lr"]
@@ -94,9 +103,9 @@ def train(solver: Solver, config: TrainingConfig = TrainingConfig()) -> bool:
         and len(theta_list) > 0
         and is_falsified_by_concrete_inputs(solver, theta_list)
     ):
-        return True
+        return True, True
 
-    return False
+    return True, False
 
 
 def is_falsified_by_concrete_inputs(solver: Solver, theta_list: List[Tensor]) -> bool:
