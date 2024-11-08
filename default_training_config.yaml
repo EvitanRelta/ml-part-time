@@ -6,21 +6,21 @@
 # ==============================================================================
 #                        Optimizer & LR-scheduler configs
 # ==============================================================================
-# Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 1.
-max_lr: 1
+# Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 0.5.
+max_lr: 0.5
 
 # Min learning-rate to decay until. When this LR is reached, training will
 # be stopped by our `EarlyStopHandler`.
-# The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-4.
-min_lr: 1.0e-4
+# The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-5.
+min_lr: 1.0e-5
 
 # Factor by which the learning rate will be reduced.
-# The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.5
-reduce_lr_factor: 0.5
+# The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.75.
+reduce_lr_factor: 0.75
 
 # Number of epochs with no improvement after which learning rate will be reduced.
-# The `patience` param used by the `ReduceLROnPlateau` scheduler. Defaults to 3.
-reduce_lr_patience: 3
+# The `patience` param used by the `ReduceLROnPlateau` scheduler. Defaults to 5.
+reduce_lr_patience: 5
 
 # Threshold for measuring the new optimum, to only focus on significant changes.
 # The `threshold` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-3.
