@@ -56,7 +56,7 @@ def solve(
                 break
             # If training failed due to too high LR, reduce LR and try again.
             print("Training failed. Reducing LR and trying again...")
-            curr_config.max_lr = curr_config.max_lr * 0.1  # reduce to 10% of previous LR
+            curr_config.max_lr = curr_config.max_lr * 0.2  # reduce to 20% of previous LR
 
         if not is_train_success:
             raise Exception("Failed to train.")
