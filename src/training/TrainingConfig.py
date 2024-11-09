@@ -11,19 +11,19 @@ class TrainingConfig(YAMLWizard):
     # ==========================================================================
     max_lr: float = 0.5
     """Max learning-rate. The starting LR given to the `Adam` optimizer. Defaults to 0.5."""
-    min_lr: float = 1e-5
+    min_lr: float = 1e-4
     """Min learning-rate to decay until. When this LR is reached, training will
     be stopped by our `EarlyStopHandler`.
-    The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-5."""
-    reduce_lr_factor: float = 0.75
+    The `min_lr` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-4."""
+    reduce_lr_factor: float = 0.2
     """Factor by which the learning rate will be reduced.
-    The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.75."""
-    reduce_lr_patience: int = 5
+    The `factor` param used by the `ReduceLROnPlateau` scheduler. Defaults to 0.2."""
+    reduce_lr_patience: int = 3
     """Number of epochs with no improvement after which learning rate will be reduced.
-    The `patience` param used by the `ReduceLROnPlateau` scheduler. Defaults to 5."""
-    reduce_lr_threshold: float = 1e-3
+    The `patience` param used by the `ReduceLROnPlateau` scheduler. Defaults to 3."""
+    reduce_lr_threshold: float = 1e-2
     """Threshold for measuring the new optimum, to only focus on significant changes.
-    The `threshold` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-3."""
+    The `threshold` param used by the `ReduceLROnPlateau` scheduler. Defaults to 1e-2."""
 
     # ==========================================================================
     #                                Misc. configs
